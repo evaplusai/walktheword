@@ -1,0 +1,34 @@
+{
+  "mcpServers": {
+    "ruflo": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "ruflo",
+        "mcp",
+        "start"
+      ],
+      "env": {}
+    },
+    "agentdb": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "agentdb",
+        "mcp",
+        "start"
+      ],
+      "env": {}
+    },
+    "ruvector": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "ruvector",
+        "mcp",
+        "start"
+      ],
+      "env": {}
+    }
+  }
+}

@@ -141,3 +141,6 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# AgentDB curator workbench (local, regenerate with: npx agentdb init ./curator/agentdb.db)
+curator/*.db
