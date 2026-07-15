@@ -36,10 +36,14 @@ let trail = store.read('wtw.trail', [], sessionStorage);
 
 // ADR-005 §3: a translation is a display layer over the unchanged graph.
 function setTranslation(tr) {
+  if (tr === 'web' && !overlay) { toast('The WEB layer failed to load — reading the KJV artifact.'); tr = 'kjv'; }
   translation = tr;
   store.write('wtw.translation', tr);
   data = tr === 'web' ? applyTranslation(edition, overlay.books, overlay.translation) : edition;
 }
+
+// Short label of the ACTIVE translation — cards must never mislabel WEB text as KJV.
+function trLabel() { return translation === 'web' ? 'WEB' : 'KJV'; }
 
 // Most recently read position — by timestamp, not key order (a re-read book keeps its
 // original key position in the object, so at(-1) lies about recency).
@@ -173,7 +177,7 @@ function renderTeach() {
       itself is silent.</span> A <b>dashed</b> line.</p></div>
     <p class="quiet" style="margin:2px 0 14px">A grade measures how explicit a connection is —
     never whether it is true.</p>
-    <button class="btn walk" id="startBtn">Open Matthew 13 →</button>
+    <button class="btn walk" id="startBtn">Choose where to begin →</button>
     <p class="skipline" id="skipBtn">Skip — every chip re-explains itself when tapped</p>`;
   const start = () => {
     store.write('wtw.taught', 1);
@@ -203,8 +207,9 @@ function renderStart() {
     <div class="trrow">
       <button class="trcard ${translation === 'kjv' ? 'on' : ''}" data-tr="kjv">
         <b>KJV</b><span>King James Version · public domain · carries the connection doors</span></button>
-      <button class="trcard ${translation === 'web' ? 'on' : ''}" data-tr="web">
-        <b>WEB</b><span>World English Bible · public domain · display layer over the same map</span></button>
+      ${overlay ? `<button class="trcard ${translation === 'web' ? 'on' : ''}" data-tr="web">
+        <b>WEB</b><span>World English Bible · public domain · display layer over the same map</span></button>`
+      : '<p class="quiet" style="flex:1;align-self:center">WEB layer unavailable this session — the KJV edition reads fully.</p>'}
     </div>
     ${translation ? `
       <p class="seccap">Old Testament</p>${ot.map(bookRow).join('')}
@@ -215,6 +220,7 @@ function renderStart() {
   $$('#view [data-tr]').forEach(el => el.onclick = () => {
     setTranslation(el.dataset.tr);
     renderStart();
+    $(`#view [data-tr="${translation}"]`)?.focus(); // keep keyboard focus on the chosen card
   });
   $$('#view [data-chapter]').forEach(el => el.onclick = () => {
     const [book, chapter] = el.dataset.chapter.split(':');
@@ -224,6 +230,11 @@ function renderStart() {
 
 // -- reading (ADR-002 §3)
 function renderReading(bookId, chapter, land = null) {
+  // ADR-005 §1: power paths that bypass the start screen adopt KJV, persist, announce.
+  if (!translation) {
+    setTranslation('kjv');
+    toast('Reading the KJV — the edition’s substrate. Switch to WEB anytime in Books.');
+  }
   const book = getBook(data, bookId);
   setBar(`${escapeHtml(book.name)}<span class="caret">⌄</span>`, `Ch ${chapter}`);
   setShelf('books');
@@ -252,7 +263,7 @@ function passageQuoteHTML(p) {
     prev = v.v;
   }
   const rest = p.verses.length - shown.length;
-  return `<div class="target"><div class="ref">${escapeHtml(formatRef(data, `${p.book}:${p.chapter}:${p.verses[0].v}${p.verses.length > 1 ? '-' + p.verses[p.verses.length - 1].v : ''}`))} · KJV${p.complete === false ? ' · partially in this edition' : ''}</div>
+  return `<div class="target"><div class="ref">${escapeHtml(formatRef(data, `${p.book}:${p.chapter}:${p.verses[0].v}${p.verses.length > 1 ? '-' + p.verses[p.verses.length - 1].v : ''}`))} · ${trLabel()}${p.complete === false ? ' · partially in this edition' : ''}</div>
     <p>${quote.trim()}${rest > 0 ? ` <span class="quiet">… ${rest} more verse${rest > 1 ? 's' : ''} on the page.</span>` : ''}</p></div>`;
 }
 
@@ -519,7 +530,7 @@ function openBooks(expanded = screen.book || 'matthew') {
       <button class="bk ${translation === 'web' ? 'on' : ''}" data-tr="web">WEB</button>
       <span class="quietcap" style="align-self:center">translation — a display layer, same map</span>
     </div>
-    ${last ? `<div class="controw" role="button" tabindex="0" data-chapter="${last.book}:${last.pos.chapter}">
+    ${last ? `<div class="controw" role="button" tabindex="0" data-chapter="${last.book}:${last.pos.chapter}${last.pos.land ? ':' + last.pos.land : ''}">
       <span>Continue · <b>${escapeHtml(getBook(data, last.book).name)} ${last.pos.chapter}${last.pos.land ? ':' + last.pos.land : ''}</b></span>
       <span class="mono">Resume →</span></div>` : ''}
     <p class="seccap">Old Testament</p><div class="bgrid">${grid(ot)}</div>
@@ -532,21 +543,22 @@ function openBooks(expanded = screen.book || 'matthew') {
     </div>`;
   $$('#sh-books [data-tr]').forEach(el => el.onclick = () => {
     setTranslation(el.dataset.tr);
-    if (screen.type === 'reading') renderReading(screen.book, screen.chapter, screen.land ?? null);
-    openBooks(expanded); // re-render the sheet with the new active translation
+    showScreen({ ...screen }); // re-render WHATEVER is behind the sheet in the new translation
+    openBooks(expanded);       // then re-open the sheet with the new active state
   });
   $$('#sh-books [data-book]').forEach(el => el.onclick = () => openBooks(el.dataset.book));
   $$('#sh-books [data-chapter]').forEach(el => el.onclick = () => {
-    const [book, chapter] = el.dataset.chapter.split(':');
+    const [book, chapter, land] = el.dataset.chapter.split(':');
     returnTo = null;
-    showScreen({ type: 'reading', book, chapter: Number(chapter) });
+    showScreen({ type: 'reading', book, chapter: Number(chapter), land: land ? Number(land) : null });
   });
   $('#edChangelog').onclick = () => toast(data.edition.changelog[0]);
   $('#edCorrections').onclick = () => toast(`Corrections: ${data.edition.corrections} — fixes arrive in the next numbered edition, never as silent edits.`);
   $('#edVerify').onclick = async () => {
     try {
-      const sum = await editionChecksum(data);
-      toast(sum === data.edition.checksum
+      // ADR-005 §3: verify ALWAYS checks the KJV edition artifact — the graph's substrate.
+      const sum = await editionChecksum(edition);
+      toast(sum === edition.edition.checksum
         ? `✓ Verified. This artifact matches its published checksum (${sum.slice(0, 18)}…).`
         : '✗ Checksum mismatch — this copy differs from the published edition.');
     } catch (err) {
@@ -643,11 +655,15 @@ function wire() {
 
 // ---------- boot ----------
 async function boot() {
-  const [edRes, ovRes] = await Promise.all([
-    fetch('./data/edition-1.json'), fetch('./data/web-overlay-1.json')
-  ]);
+  const edRes = await fetch('./data/edition-1.json');
+  if (!edRes.ok) throw new Error(`edition-1.json: HTTP ${edRes.status}`);
   edition = await edRes.json();
-  overlay = await ovRes.json();
+  // The WEB layer is optional: if it fails, the KJV edition still reads fully.
+  try {
+    const ovRes = await fetch('./data/web-overlay-1.json');
+    overlay = ovRes.ok ? await ovRes.json() : null;
+  } catch { overlay = null; }
+  if (!overlay) console.warn('WEB overlay unavailable — KJV only this session.');
   const problems = validateEdition(edition);
   if (problems.length) console.warn('Edition integrity problems:', problems);
   data = edition;
@@ -659,7 +675,7 @@ async function boot() {
   const last = lastContinue();
   // No preloaded content (ADR-005): resume only a place the reader chose; else choose.
   showScreen(translation && last
-    ? { type: 'reading', book: last.book, chapter: last.pos.chapter }
+    ? { type: 'reading', book: last.book, chapter: last.pos.chapter, land: last.pos.land ?? null }
     : { type: 'start' });
 }
 

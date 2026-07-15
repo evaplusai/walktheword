@@ -19,9 +19,11 @@ reader choose; nothing is "the" starting passage (PRD §3: "start anywhere, foll
 1. **Start screen** replaces any default landing. After first-open teaching (unchanged),
    the reader sees, in order:
    - **Translation choice** — one card per loaded translation (Edition 1: KJV and WEB,
-     both extracted from the curator's sources). Explicit tap required; the choice
-     persists (`localStorage["wtw.translation"]`) and is switchable any time from the
-     Books sheet.
+     both extracted from the curator's sources). The start screen requires an explicit
+     tap; the choice persists (`localStorage["wtw.translation"]`) and is switchable any
+     time from the Books sheet. **Power paths that bypass the start screen** (a typed
+     reference, the Books nav) adopt KJV — the edition's substrate — persist it, and
+     announce it with a toast; nothing ever reads in a silent, unchosen state.
    - **The loaded content** — every included book with its included chapters, honestly
      labeled ("Matthew — 1 of 28 chapters in this slice"). Tapping a chapter starts
      reading. No passage is preselected.
