@@ -2,7 +2,8 @@
 // Everything rendered here is edition data, verbatim. Nothing is composed at runtime.
 import {
   getBook, getPassage, nodeById, edgeById, walkEdge, classifyQuery,
-  validateEdition, editionChecksum
+  validateEdition, editionChecksum, formatRef, missingRefExplanation,
+  edgeWarrants, parseRef
 } from './lib/graph.mjs';
 import { escapeHtml, chapterHTML } from './lib/render.mjs';
 
@@ -30,6 +31,22 @@ let screen = { type: 'reading', book: 'matthew', chapter: 13 }; // current scree
 let returnTo = null;                                            // {label, screen}
 let trail = store.read('wtw.trail', [], sessionStorage);
 
+// Most recently read position — by timestamp, not key order (a re-read book keeps its
+// original key position in the object, so at(-1) lies about recency).
+function lastContinue() {
+  const continues = store.read('wtw.continue', {});
+  let best = null;
+  for (const [book, pos] of Object.entries(continues)) {
+    if (!best || (pos.t || 0) > best.pos.t) best = { book, pos: { t: 0, ...pos } };
+  }
+  return best;
+}
+function saveContinue(book, chapter, land) {
+  const continues = store.read('wtw.continue', {});
+  continues[book] = { chapter, land, t: Date.now() };
+  store.write('wtw.continue', continues);
+}
+
 // ---------- chrome ----------
 let toastTimer = null;
 function toast(msg) {
@@ -40,14 +57,38 @@ function toast(msg) {
   toastTimer = setTimeout(() => t.classList.remove('on'), 3600);
 }
 
+let sheetReturnFocus = null;
 function closeSheets() {
+  const wasOpen = $$('.sheet2.open').length > 0;
   $$('.sheet2').forEach(s => s.classList.remove('open'));
   $('#scrim').classList.remove('on');
+  if (wasOpen && sheetReturnFocus && document.contains(sheetReturnFocus)) {
+    sheetReturnFocus.focus();
+  }
+  sheetReturnFocus = null;
 }
 function openSheet(id) {
   closeSheets();
-  $('#' + id).classList.add('open');
+  sheetReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  const sheet = $('#' + id);
+  sheet.classList.add('open');
   $('#scrim').classList.add('on');
+  sheet.focus();
+}
+// Keep Tab inside an open sheet (simple containment for the role="dialog" sheets).
+function containSheetTab(e) {
+  const sheet = $('.sheet2.open');
+  if (!sheet || e.key !== 'Tab') return;
+  const focusables = $$('button, [tabindex="0"], input, [href]', sheet)
+    .filter(el => el.offsetParent !== null);
+  if (!focusables.length) return;
+  const first = focusables[0];
+  const last = focusables[focusables.length - 1];
+  if (e.shiftKey && (document.activeElement === first || document.activeElement === sheet)) {
+    e.preventDefault(); last.focus();
+  } else if (!e.shiftKey && document.activeElement === last) {
+    e.preventDefault(); first.focus();
+  }
 }
 
 function setBar(book, loc) { $('#barBook').innerHTML = book; $('#barLoc').textContent = loc; }
@@ -74,6 +115,14 @@ function pushStep(title, ref, grade, toScreen) {
 
 // ---------- screens ----------
 function showScreen(s) {
+  // Guard before mutating state: never point the app at a screen that can't render.
+  if (s.type === 'reading') {
+    const book = getBook(data, s.book);
+    if (!book || !book.chapters[String(s.chapter)]) {
+      toast('That chapter is not in this edition slice.');
+      return;
+    }
+  }
   screen = s;
   closeSheets();
   if (s.type === 'reading') return renderReading(s.book, s.chapter, s.land ?? null);
@@ -125,61 +174,96 @@ function renderTeach() {
 // -- reading (ADR-002 §3)
 function renderReading(bookId, chapter, land = null) {
   const book = getBook(data, bookId);
-  const ch = book && book.chapters[String(chapter)];
-  if (!ch) { toast('That chapter is not in this edition slice.'); return; }
   setBar(`${escapeHtml(book.name)}<span class="caret">⌄</span>`, `Ch ${chapter}`);
   setShelf('books');
   renderReturnChip();
   $('#view').innerHTML = `<p class="scripture">${chapterHTML(data, bookId, chapter, land)}</p>` +
     (book.partial ? `<p class="quiet" style="margin-top:18px">Edition 1 slice — ${escapeHtml(book.name)} grows in later editions. The scripture text itself never changes; only the map around it.</p>` : '');
-  $('#barBook').onclick = () => openBooks(bookId);
-  const continues = store.read('wtw.continue', {});
-  continues[bookId] = { chapter, land };
-  store.write('wtw.continue', continues);
+  saveContinue(bookId, chapter, land);
   if (land) $('.land')?.scrollIntoView({ block: 'center' });
   else $('#view').scrollTop = 0;
 }
 
-// -- connection card (ADR-003 §1)
+// -- connection card (ADR-003 §1): grade → verbatim target → warrant receipt → one verb.
+// The target quote is ALWAYS the scripture's own words — never composed copy.
+function passageQuoteHTML(p) {
+  // All verses, gaps admitted; long targets truncate with an honest count.
+  const MAX = 4;
+  const shown = p.verses.slice(0, MAX);
+  let quote = '';
+  let prev = null;
+  for (const v of shown) {
+    if (prev !== null && v.v !== prev + 1) quote += ' · · · ';
+    quote += escapeHtml(v.t) + ' ';
+    prev = v.v;
+  }
+  const rest = p.verses.length - shown.length;
+  return `<div class="target"><div class="ref">${escapeHtml(formatRef(data, `${p.book}:${p.chapter}:${p.verses[0].v}${p.verses.length > 1 ? '-' + p.verses[p.verses.length - 1].v : ''}`))} · KJV${p.complete === false ? ' · partially in this edition' : ''}</div>
+    <p>${quote.trim()}${rest > 0 ? ` <span class="quiet">… ${rest} more verse${rest > 1 ? 's' : ''} on the page.</span>` : ''}</p></div>`;
+}
+
 function openCard(edgeId) {
   const edge = edgeById(data, edgeId);
-  if (!edge) return;
-  const walked = walkEdge(data, edgeId);
+  const walked = edge && walkEdge(data, edgeId);
+  if (!walked) { toast('This door does not resolve in this edition — report it via Corrections.'); return; }
   let targetHTML = '';
   let walkLabel = 'Walk →';
+  let walkable = true;
   if (walked.kind === 'passage') {
-    const p = walked.passage;
-    targetHTML = `<div class="target"><div class="ref">${escapeHtml(p.bookName)} ${p.chapter}:${p.verses[0].v}${p.verses.length > 1 ? '–' + p.verses[p.verses.length - 1].v : ''} · KJV</div>
-      <p>${p.verses.slice(0, 2).map(v => escapeHtml(v.t)).join(' ')}</p></div>`;
-    walkLabel = `Walk to ${escapeHtml(p.bookName)} ${p.chapter} →`;
+    targetHTML = passageQuoteHTML(walked.passage);
+    walkLabel = `Walk to ${escapeHtml(walked.passage.bookName)} ${walked.passage.chapter} →`;
   } else if (walked.kind === 'event') {
-    targetHTML = `<div class="target"><div class="ref">${escapeHtml(walked.node.name)} · ${walked.node.witnesses.length} witnesses</div>
-      <p>Each gospel tells it in its own voice — parallel, unmerged, differences kept.</p></div>`;
+    // Verbatim: each witness's own opening words, side by side, unmerged.
+    targetHTML = `<div class="target"><div class="ref">${escapeHtml(walked.node.name)} · ${walked.node.witnesses.length} witnesses · each in its own words</div>
+      ${walked.node.witnesses.map(w => {
+        const wp = getPassage(data, w.ref);
+        return `<p style="margin-bottom:6px"><span class="quiet">${escapeHtml(wp.bookName)}:</span> “${escapeHtml(walked.node.aligned[w.book])}…”</p>`;
+      }).join('')}</div>`;
     walkLabel = 'See the witnesses →';
   } else if (walked.kind === 'thread') {
-    targetHTML = `<div class="target"><div class="ref">${escapeHtml(walked.node.name)} · thread · ${walked.node.stops.length} stops</div>
-      <p>One image followed across the canon, in canonical order.</p></div>`;
+    const first = getPassage(data, walked.node.stops[0].ref);
+    targetHTML = `<div class="target"><div class="ref">${escapeHtml(walked.node.name)} · thread · ${walked.node.stops.length} stops · first stop ${escapeHtml(formatRef(data, walked.node.stops[0].ref))}</div>
+      <p>“${escapeHtml(first.verses[0].t)}”</p></div>`;
     walkLabel = 'Follow the thread →';
+  } else if (walked.kind === 'tradition') {
+    targetHTML = `<div class="target"><div class="ref">Tradition — outside the text · always hollow</div>
+      <p style="font-family:var(--sans);font-size:13.5px">${escapeHtml(walked.node.text)}</p>
+      <p class="quiet" style="margin-top:8px">${escapeHtml(walked.node.source)}.</p></div>`;
+    walkable = false; // tradition has no page to walk to — it lives outside the text
   }
-  const wp = getPassage(data, edge.warrant);
-  const warrantText = wp ? wp.verses[0].t : '';
+  const warrants = edgeWarrants(edge);
+  const warrantHTML = warrants.map(w => {
+    const wp = getPassage(data, w);
+    const t = wp ? wp.verses[0].t : '';
+    return `<u data-warrant="${escapeHtml(w)}" role="button" tabindex="0">${escapeHtml(formatRef(data, w))} — “${escapeHtml(t.slice(0, 70))}${t.length > 70 ? '…' : ''}”</u>`;
+  }).join('<br>');
   $('#sh-card').innerHTML = `
     <div class="grab"></div>
-    <div class="rel"><span class="chip ${edge.grade}" data-grade="${edge.grade}">${edge.grade}</span><b>${escapeHtml(edge.claim)}</b></div>
+    <div class="rel"><span class="chip ${edge.grade}" data-grade="${edge.grade}" role="button" tabindex="0">${edge.grade}</span><b>${escapeHtml(edge.claim)}</b></div>
     ${targetHTML}
-    <p class="warrant">Warrant: <u data-warrant="${escapeHtml(edge.warrant)}">${escapeHtml(edge.warrant.replace(/:/g, ' ').replace(/^\w/, c => c.toUpperCase()))} — “${escapeHtml(warrantText.slice(0, 80))}${warrantText.length > 80 ? '…' : ''}”</u></p>
+    <p class="warrant">Warrant${warrants.length > 1 ? 's' : ''}: ${warrantHTML}</p>
     <div class="actions">
-      <button class="btn" id="stayBtn">Stay here</button>
-      <button class="btn walk" id="walkBtn">${walkLabel}</button>
+      <button class="btn" id="stayBtn">${walkable ? 'Stay here' : 'Close — the text says only what it says'}</button>
+      ${walkable ? `<button class="btn walk" id="walkBtn">${walkLabel}</button>` : ''}
     </div>`;
   $('#stayBtn').onclick = closeSheets;
-  $('#walkBtn').onclick = () => doWalk(edge, walked);
+  const wb = $('#walkBtn');
+  if (wb) wb.onclick = () => doWalk(edge, walked);
   openSheet('sh-card');
 }
 
 function doWalk(edge, walked) {
+  // The origin is the DOOR's exact verse (edge.anchor), not the screen's stale state —
+  // "← Matthew 13:14", and returning re-lands on that verse (ADR-003 §3, Design 02 F2).
   const from = { ...screen };
-  const fromLabel = screenLabel(from);
+  let fromLabel = screenLabel(from);
+  if (edge.anchor && from.type === 'reading') {
+    const a = parseRef(edge.anchor.ref);
+    if (a && a.book === from.book && a.chapter === from.chapter) {
+      from.land = a.verseStart;
+      fromLabel = formatRef(data, edge.anchor.ref);
+    }
+  }
   let toScreen;
   if (walked.kind === 'passage') {
     const p = walked.passage;
@@ -189,7 +273,7 @@ function doWalk(edge, walked) {
   } else {
     toScreen = { type: 'thread', node: walked.node.id };
   }
-  pushStep(`${fromLabel} → ${screenLabel(toScreen)}`, escapeHtml(edge.claim), edge.grade, toScreen);
+  pushStep(`${fromLabel} → ${screenLabel(toScreen)}`, edge.claim, edge.grade, toScreen);
   returnTo = { label: fromLabel, screen: from };
   showScreen(toScreen);
 }
@@ -206,7 +290,7 @@ function renderEvent(nodeId, tab = 0, compare = false) {
   let body = p.verses.map(v => {
     let t = escapeHtml(v.t);
     const ap = escapeHtml(alignedPhrase);
-    if (t.includes(ap)) t = t.replace(ap, `<span class="aligned2" id="alignTap">${ap}</span>`);
+    if (t.includes(ap)) t = t.replace(ap, `<span class="aligned2" id="alignTap" role="button" tabindex="0">${ap}</span>`);
     return `<span class="v">${v.v}</span>${t} `;
   }).join('');
   const others = node.witnesses.filter((_, i) => i !== tab).map(o => {
@@ -221,10 +305,10 @@ function renderEvent(nodeId, tab = 0, compare = false) {
     <p class="scripture" style="font-size:15.5px">${body}</p>
     <p class="quiet" style="margin-top:8px">Tap the tinted phrase to hear the other witnesses.</p>
     ${compare ? `<div class="cmp"><p class="cap">The same moment, each voice</p>${others}</div>` : ''}
-    <div class="divergence"><span class="chip ${node.divergence.grade}" data-grade="${node.divergence.grade}">${node.divergence.grade}</span>
-      ${escapeHtml(node.divergence.text)} <a class="cx2 B" data-goto="${escapeHtml(node.divergence.ref)}">Shown, graded, unresolved.</a></div>
-    <p class="keyline"><span class="chip ${node.key.grade}" data-grade="${node.key.grade}">${node.key.grade}</span>
-      ${escapeHtml(node.key.label)}: <a data-goto="${escapeHtml(node.key.ref)}">“${escapeHtml(node.key.phrase)}” — ${escapeHtml(kp.bookName)} ${kp.chapter}:${kp.verses[0].v}</a></p>`;
+    <div class="divergence"><span class="chip ${node.divergence.grade}" data-grade="${node.divergence.grade}" role="button" tabindex="0">${node.divergence.grade}</span>
+      ${escapeHtml(node.divergence.text)} <a class="cx2 B" data-goto="${escapeHtml(node.divergence.ref)}" role="button" tabindex="0">Shown, graded, unresolved.</a></div>
+    <p class="keyline"><span class="chip ${node.key.grade}" data-grade="${node.key.grade}" role="button" tabindex="0">${node.key.grade}</span>
+      ${escapeHtml(node.key.label)}: <a data-goto="${escapeHtml(node.key.ref)}" role="button" tabindex="0">“${escapeHtml(node.key.phrase)}” — ${escapeHtml(kp.bookName)} ${kp.chapter}:${kp.verses[0].v}</a></p>`;
   $$('#view .tabs span').forEach(t =>
     t.onclick = () => showScreen({ ...screen, tab: Number(t.dataset.tab), compare: false }));
   const align = $('#alignTap');
@@ -242,7 +326,7 @@ function renderThread(nodeId) {
     return `<li><span class="dot ${stop.grade}"></span>
       <h5>${escapeHtml(stop.label)}</h5>
       <span class="ref">${escapeHtml(p.bookName)} ${p.chapter}:${p.verses[0].v} · Grade ${stop.grade}${stop.note ? ' — ' + escapeHtml(stop.note) : ''}</span>
-      <p data-goto="${escapeHtml(stop.ref)}">“${escapeHtml(p.verses[0].t)}”</p></li>`;
+      <p data-goto="${escapeHtml(stop.ref)}" role="button" tabindex="0">“${escapeHtml(p.verses[0].t)}”</p></li>`;
   }).join('')}</ol>`;
 }
 
@@ -259,9 +343,9 @@ function renderSearch(q = '') {
         <button class="btn" id="sGo">Open</button></div>
       <p class="routesonly">Search only opens doors. It never writes answers.</p>
       <div class="sugrow">
-        <span class="sug">my mother is in the hospital</span>
-        <span class="sug">who wrote Hebrews?</span>
-        <span class="sug">john 3 16</span>
+        <span class="sug" role="button" tabindex="0">my mother is in the hospital</span>
+        <span class="sug" role="button" tabindex="0">who wrote Hebrews?</span>
+        <span class="sug" role="button" tabindex="0">john 3 16</span>
       </div>
       <div id="sRes"></div>
     </div>`;
@@ -273,6 +357,7 @@ function renderSearch(q = '') {
 }
 
 function doSearch(q) {
+  if (!q || !q.trim()) { $('#sInput')?.focus(); return; }
   const res = classifyQuery(data, q);
   const out = $('#sRes');
   if (res.kind === 'ref') {
@@ -288,7 +373,7 @@ function doSearch(q) {
       res.moment.routes.map(route => {
         const p = getPassage(data, route.ref);
         return `<div class="dest"><div class="ref"><span>${escapeHtml(p.bookName)} ${p.chapter}${p.verses.length === 1 ? ':' + p.verses[0].v : ' · whole psalm'}</span>
-          <span class="go" data-route="${escapeHtml(route.ref)}">Walk →</span></div>
+          <span class="go" data-route="${escapeHtml(route.ref)}" role="button" tabindex="0">Walk →</span></div>
           <p>“${escapeHtml(p.verses[0].t)}”</p>
           <p class="why">${escapeHtml(route.why)}</p></div>`;
       }).join('');
@@ -312,10 +397,8 @@ function doSearch(q) {
     return;
   }
   if (res.kind === 'ref-missing') {
-    out.innerHTML = `<div class="honest"><p>That page exists in the canon but is not in this
-      edition slice yet.</p></div><p class="quiet">Edition 1 carries Matthew 13, the Sower
-      witnesses, the seed thread, and their destinations. Later editions grow the map;
-      the text itself never changes.</p>`;
+    // Data-derived honesty only: say exactly what this edition carries, claim nothing more.
+    out.innerHTML = `<div class="honest"><p>${escapeHtml(missingRefExplanation(data, res.ref))}</p></div>`;
     return;
   }
   out.innerHTML = `<div class="honest"><p>No doors matched those words.</p></div>
@@ -337,24 +420,30 @@ function renderNotes() {
     <p class="quiet" style="margin:0 0 10px">Attaches to your last reading position.</p>
     <div id="noteList">${notes.slice().reverse().map(n =>
       `<div class="entry"><div class="when"><span>${escapeHtml(n.when)}</span><span>${escapeHtml(n.ref)}</span></div>
-       <p>${escapeHtml(n.text)}</p></div>`).join('') || '<p class="quiet">Nothing yet. One line at a time.</p>'}</div>`;
-  $('#noteBtn').onclick = () => {
+       <p>${escapeHtml(n.text)}</p></div>`).join('') || '<p class="quiet">Nothing yet. One line at a time.</p>'}</div>
+    ${notes.length ? '<button class="btn" id="noteExport" style="margin-top:16px">Copy all — your notebook is yours</button>' : ''}`;
+  const keep = () => {
     const text = $('#noteInput').value.trim();
     if (!text) return;
-    const continues = store.read('wtw.continue', {});
-    const last = Object.entries(continues).at(-1);
-    const ref = last ? `${getBook(data, last[0]).name} ${last[1].chapter}${last[1].land ? ':' + last[1].land : ''}` : 'Edition 1';
+    const last = lastContinue();
+    const ref = last ? `${getBook(data, last.book).name} ${last.pos.chapter}${last.pos.land ? ':' + last.pos.land : ''}` : 'Edition 1';
     notes.push({ when: new Date().toISOString().slice(0, 10), ref, text });
     store.write('wtw.notes', notes);
     renderNotes();
   };
+  $('#noteBtn').onclick = keep;
+  $('#noteInput').onkeydown = e => { if (e.key === 'Enter') keep(); };
+  const exp = $('#noteExport');
+  if (exp) exp.onclick = async () => {
+    const text = notes.map(n => `${n.when} · ${n.ref}\n${n.text}`).join('\n\n');
+    try { await navigator.clipboard.writeText(text); toast('Copied. Your notes, in plain text, yours to keep anywhere.'); }
+    catch { toast('Copy failed — select the entries by hand; they are plain text on this page.'); }
+  };
 }
 
 // -- books sheet (ADR-002 §4)
-function openBooks(expanded = screen.book) {
-  const continues = store.read('wtw.continue', {});
-  const lastEntries = Object.entries(continues);
-  const last = lastEntries.at(-1);
+function openBooks(expanded = screen.book || 'matthew') {
+  const last = lastContinue();
   const ot = data.books.filter(b => b.order < 40).sort((a, b) => a.order - b.order);
   const nt = data.books.filter(b => b.order >= 40).sort((a, b) => a.order - b.order);
   const grid = books => books.map(b =>
@@ -367,23 +456,23 @@ function openBooks(expanded = screen.book) {
     for (let c = 1; c <= exp.chaptersTotal; c++) {
       cells.push(included.has(c)
         ? `<button class="bk ${screen.type === 'reading' && screen.book === exp.id && screen.chapter === c ? 'on' : ''}" data-chapter="${exp.id}:${c}">${c}</button>`
-        : `<button class="bk faint" data-missing="1">${c}</button>`);
+        : `<button class="bk faint" data-missing="1" aria-disabled="true">${c}</button>`);
     }
     chaptersHTML = `<p class="seccap">${escapeHtml(exp.name)} · ${exp.chaptersTotal} chapters</p><div class="bgrid">${cells.join('')}</div>`;
   }
   $('#sh-books').innerHTML = `
     <div class="grab"></div>
     <p class="cap">Books · two taps to anywhere</p>
-    ${last ? `<div class="controw" data-chapter="${last[0]}:${last[1].chapter}">
-      <span>Continue · <b>${escapeHtml(getBook(data, last[0]).name)} ${last[1].chapter}${last[1].land ? ':' + last[1].land : ''}</b></span>
+    ${last ? `<div class="controw" role="button" tabindex="0" data-chapter="${last.book}:${last.pos.chapter}">
+      <span>Continue · <b>${escapeHtml(getBook(data, last.book).name)} ${last.pos.chapter}${last.pos.land ? ':' + last.pos.land : ''}</b></span>
       <span class="mono">Resume →</span></div>` : ''}
     <p class="seccap">Old Testament</p><div class="bgrid">${grid(ot)}</div>
     <p class="seccap">New Testament</p><div class="bgrid">${grid(nt)}</div>
     ${chaptersHTML}
     <div class="edrow">
-      <span id="edChangelog">Edition ${data.edition.number} · what changed</span>
-      <span id="edVerify">Verify this edition</span>
-      <span id="edCorrections">Corrections</span>
+      <span id="edChangelog" role="button" tabindex="0">Edition ${data.edition.number} · what changed</span>
+      <span id="edVerify" role="button" tabindex="0">Verify this edition</span>
+      <span id="edCorrections" role="button" tabindex="0">Corrections</span>
     </div>`;
   $$('#sh-books [data-book]').forEach(el => el.onclick = () => openBooks(el.dataset.book));
   $$('#sh-books [data-chapter]').forEach(el => el.onclick = () => {
@@ -396,10 +485,14 @@ function openBooks(expanded = screen.book) {
   $('#edChangelog').onclick = () => toast(data.edition.changelog[0]);
   $('#edCorrections').onclick = () => toast(`Corrections: ${data.edition.corrections} — fixes arrive in the next numbered edition, never as silent edits.`);
   $('#edVerify').onclick = async () => {
-    const sum = await editionChecksum(data);
-    toast(sum === data.edition.checksum
-      ? `✓ Verified. This artifact matches its published checksum (${sum.slice(0, 18)}…).`
-      : '✗ Checksum mismatch — this copy differs from the published edition.');
+    try {
+      const sum = await editionChecksum(data);
+      toast(sum === data.edition.checksum
+        ? `✓ Verified. This artifact matches its published checksum (${sum.slice(0, 18)}…).`
+        : '✗ Checksum mismatch — this copy differs from the published edition.');
+    } catch (err) {
+      toast(`Could not verify here: ${err.message} You can also hash data/edition-1.json yourself — the method is in ADR-001.`);
+    }
   };
   openSheet('sh-books');
 }
@@ -407,7 +500,7 @@ function openBooks(expanded = screen.book) {
 // -- trail sheet (ADR-003 §3)
 function openTrail() {
   const steps = trail.map((s, i) =>
-    `<li><span class="dot ${s.grade}"></span><span class="ret" data-step="${i}">Return</span>
+    `<li><span class="dot ${s.grade}"></span><span class="ret" data-step="${i}" role="button" tabindex="0">Return</span>
      <h5>${escapeHtml(s.title)}</h5><span class="ref">${escapeHtml(s.ref)}</span></li>`).join('');
   $('#sh-trail').innerHTML = `
     <div class="grab"></div>
@@ -416,7 +509,7 @@ function openTrail() {
       <li><span class="dot here"></span><h5>${escapeHtml(screenLabel(screen))} — you are here</h5>
       <span class="ref">Right now</span></li></ol>
     <p class="quiet" style="margin-top:14px">Clears with the session ·
-      <u id="keepWalk" style="cursor:pointer;color:var(--lamp-ink)">keep this walk in Notes</u></p>`;
+      <u id="keepWalk" style="cursor:pointer;color:var(--lamp-ink)" role="button" tabindex="0">keep this walk in Notes</u></p>`;
   $$('#sh-trail [data-step]').forEach(el => el.onclick = () => {
     returnTo = null;
     showScreen(trail[Number(el.dataset.step)].to);
@@ -446,6 +539,24 @@ function wire() {
     else if (nav === 'notes') { returnTo = null; showScreen({ type: 'notes' }); }
   });
   $('#edMark').onclick = () => openBooks();
+  // Header title: the second road to Books, live on EVERY screen, pre-opened to
+  // where you are (or your last reading position elsewhere). Bound once, never stale.
+  $('#barBook').onclick = () => {
+    if (screen.type === 'teach') return; // teaching screen: one job, no detours
+    const at = screen.type === 'reading' ? screen.book : (lastContinue()?.book || 'matthew');
+    openBooks(at);
+  };
+  // Keyboard activation for every interactive element, wherever it renders:
+  // Enter/Space on role="button" (doors, chips, routes, trail returns) acts like a tap.
+  document.addEventListener('keydown', e => {
+    containSheetTab(e);
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const el = e.target.closest?.('[role="button"], .cx2, [data-grade], [data-goto], [data-warrant], [data-route], [data-step], .sug, .go, .ret');
+    if (el && el.tagName !== 'BUTTON' && el.tagName !== 'INPUT') {
+      e.preventDefault();
+      el.click();
+    }
+  });
   // Delegated: doors, grade chips, goto links — wherever they render.
   document.addEventListener('click', e => {
     const door = e.target.closest('[data-edge]');
@@ -481,10 +592,9 @@ async function boot() {
   wire();
   updateTrailCount();
   if (!store.read('wtw.taught', 0)) { showScreen({ type: 'teach' }); return; }
-  const continues = store.read('wtw.continue', {});
-  const last = Object.entries(continues).at(-1);
+  const last = lastContinue();
   showScreen(last
-    ? { type: 'reading', book: last[0], chapter: last[1].chapter }
+    ? { type: 'reading', book: last.book, chapter: last.pos.chapter }
     : { type: 'reading', book: 'matthew', chapter: 13 });
 }
 

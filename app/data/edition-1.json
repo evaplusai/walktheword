@@ -4,7 +4,7 @@
     "name": "Matthew 13 & the seed thread",
     "published": "2026-07-15",
     "translation": "KJV (public domain)",
-    "checksum": "sha256-2a7596932cd0686d4c13e3f235d04549ae1e962b0bda281d6dc10a58bd1af62c",
+    "checksum": "sha256-e3a05b8ffa279d388ecca676b386020b98ac4ffe44eabbbb03a9ddc9026e3750",
     "corrections": "corrections@walktheword.example",
     "changelog": [
       "Edition 1 — initial slice: Matthew 13 (sower, mustard seed), the seed thread across six books, the Sower event with three witnesses, one moment, one honest question."
@@ -18,6 +18,10 @@
       "order": 19,
       "chaptersTotal": 150,
       "partial": true,
+      "titles": {
+        "34": "A Psalm of David, when he changed his behaviour before Abimelech; who drove him away, and he departed.",
+        "121": "A Song of degrees."
+      },
       "chapters": {
         "34": {
           "18": "The LORD is nigh unto them that are of a broken heart; and saveth such as be of a contrite spirit."
@@ -232,6 +236,13 @@
       }
     },
     {
+      "id": "tradition:bay-of-parables",
+      "type": "tradition",
+      "name": "The Bay of Parables",
+      "text": "Tradition places this teaching in a cove on Galilee's north-west shore whose slope forms a natural amphitheatre, where a voice from a boat carries to a crowd on the hillside. The text itself says only that he sat by the sea side.",
+      "source": "Local tradition; the site is a modern identification, not scripture"
+    },
+    {
       "id": "thread:seed",
       "type": "thread",
       "name": "Seed",
@@ -290,11 +301,27 @@
       "to": "event:sower",
       "rel": "witnesses",
       "grade": "B",
-      "warrant": "mark:4:3",
+      "warrant": [
+        "mark:4:3",
+        "luke:8:5"
+      ],
       "claim": "Matthew, Mark and Luke each tell the sower",
       "anchor": {
         "ref": "matthew:13:3",
         "phrase": "a sower went forth to sow"
+      }
+    },
+    {
+      "id": "mt13-2-tradition-bay",
+      "from": "matthew:13:2",
+      "to": "tradition:bay-of-parables",
+      "rel": "tradition",
+      "grade": "C",
+      "warrant": "matthew:13:2",
+      "claim": "Tradition names the shore where he sat — the text does not",
+      "anchor": {
+        "ref": "matthew:13:2",
+        "phrase": "the whole multitude stood on the shore"
       }
     },
     {
@@ -332,9 +359,6 @@
         "hospital",
         "sick",
         "illness",
-        "ill",
-        "mother",
-        "father",
         "afraid",
         "fear",
         "scared",
@@ -343,11 +367,15 @@
         "grieving",
         "died",
         "death",
+        "dying",
         "funeral",
         "worried",
         "worry",
         "anxious",
-        "crisis"
+        "crisis",
+        "hard day",
+        "broken heart",
+        "heartbroken"
       ],
       "routes": [
         {
@@ -356,7 +384,7 @@
         },
         {
           "ref": "psalms:34:18",
-          "why": "David's psalm from a day he escaped by feigning madness."
+          "why": "David's psalm — its own title binds it to the day he escaped from Abimelech."
         },
         {
           "ref": "isaiah:41:10",

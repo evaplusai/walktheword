@@ -35,3 +35,13 @@ test('landing verse is highlighted for walk arrivals', () => {
   const html = chapterHTML(data, 'isaiah', 6, 9);
   assert.match(html, /<span class="land"><span class="v">9<\/span>/);
 });
+
+test('psalm superscriptions render as a distinct title line, before verse 1', () => {
+  const html = chapterHTML(data, 'psalms', 121);
+  assert.match(html, /^<span class="super">A Song of degrees\.<\/span>/);
+});
+
+test('doors are keyboard-reachable in markup (role=button, tabindex=0)', () => {
+  const html = verseHTML(data, 'matthew', 13, 14, getVerse(data, 'matthew', 13, 14));
+  assert.match(html, /role="button" tabindex="0"/);
+});

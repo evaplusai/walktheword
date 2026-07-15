@@ -24,12 +24,15 @@ export function verseHTML(data, bookId, chapter, verse, text) {
 }
 
 // A whole chapter, in order, with an optional highlighted landing verse.
+// Superscriptions (psalm titles) render first — they are ancient testimony, kept visibly
+// distinct from the verse text (PRD §4.5, §6.3).
 export function chapterHTML(data, bookId, chapter, highlightVerse = null) {
   const book = data.books.find(b => b.id === bookId);
   const ch = book && book.chapters[String(chapter)];
   if (!ch) return '';
-  const nums = Object.keys(ch).map(Number).sort((a, b) => a - b);
-  let out = '';
+  const nums = Object.keys(ch).map(Number).filter(Number.isFinite).sort((a, b) => a - b);
+  const title = book.titles && book.titles[String(chapter)];
+  let out = title ? `<span class="super">${escapeHtml(title)}</span>` : '';
   let prev = null;
   for (const v of nums) {
     if (prev !== null && v !== prev + 1) {

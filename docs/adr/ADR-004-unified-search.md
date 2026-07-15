@@ -22,7 +22,13 @@
 2. **The promise is printed on the door**: "Search only opens doors. It never writes
    answers." — user-visible copy, architecturally true (there is no generation path;
    the app ships no model and calls no API).
-3. **Edition 1 matching is keyword-based** — deliberately simple and fully inspectable.
+3. **Edition 1 matching is keyword-based, on word boundaries** — a keyword fires only as
+   a whole word or phrase ("fear" never fires inside "fearless", "died" never inside
+   "studied"). Keyword lists are curator-curated data; broad single words that catch
+   question-shaped input (bare "mother"/"father") are excluded by editorial rule.
+   **Recorded limitation:** keyword recall is narrow by design — a situation phrased
+   without any curated keyword returns the honest no-match, not a guess.
+   Matching is deliberately simple and fully inspectable.
    The PRD's semantic doorway (on-device vector search, `@ruvector/rvf-wasm` per the
    architecture doc) is the Edition 3 upgrade; the routing-only contract stays identical,
    so the swap changes recall, not behavior. Recorded here so it is a decision, not drift.

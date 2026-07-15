@@ -4,7 +4,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
   validateEdition, getPassage, getVerse, edgesForVerse, walkEdge,
-  parseRefQuery, classifyQuery, editionChecksum, GRADES
+  parseRefQuery, classifyQuery, editionChecksum, GRADES,
+  formatRef, missingRefExplanation, edgeWarrants, edgeById
 } from '../lib/graph.mjs';
 
 const data = JSON.parse(readFileSync(new URL('../data/edition-1.json', import.meta.url), 'utf8'));
@@ -77,4 +78,87 @@ test('moment routes and question cites resolve, with backstory and honest line',
 test('edition checksum matches the stamped manifest (ADR-001 §3, verify-this-edition)', async () => {
   const sum = await editionChecksum(data);
   assert.equal(data.edition.checksum, sum);
+});
+
+// ---------- adversarial round (judge findings, round 1) ----------
+
+test('checksum detects tampering: one altered word changes the digest', async () => {
+  const tampered = JSON.parse(JSON.stringify(data));
+  tampered.books[0].chapters['121']['1'] = tampered.books[0].chapters['121']['1'].replace('hills', 'mountains');
+  assert.notEqual(await editionChecksum(tampered), data.edition.checksum);
+});
+
+test('validation REQUIRES an anchor, a claim, and a warrant on every edge', () => {
+  const clone = JSON.parse(JSON.stringify(data));
+  delete clone.edges[0].anchor;
+  assert.ok(validateEdition(clone).some(e => e.includes('missing anchor')), 'anchorless edge must fail');
+  const clone2 = JSON.parse(JSON.stringify(data));
+  delete clone2.edges[0].claim;
+  assert.ok(validateEdition(clone2).some(e => e.includes('missing claim')));
+  const clone3 = JSON.parse(JSON.stringify(data));
+  delete clone3.edges[0].warrant;
+  assert.ok(validateEdition(clone3).some(e => e.includes('missing warrant')));
+});
+
+test('validation checks event key grade (not just divergence and stops)', () => {
+  const clone = JSON.parse(JSON.stringify(data));
+  const event = clone.nodes.find(n => n.type === 'event');
+  event.key.grade = 'Z';
+  assert.ok(validateEdition(clone).some(e => e.includes('key grade invalid')));
+});
+
+test('keyword matching is word-bounded: no crisis routing on substrings', () => {
+  for (const q of ['skilled worker', 'billion dollars', 'will he come back',
+                   'i studied all night', 'the hills are steep', 'kill the lights',
+                   'he is fearless', 'a pillow fight']) {
+    assert.equal(classifyQuery(data, q).kind, 'none', `"${q}" must not match a moment`);
+  }
+  assert.equal(classifyQuery(data, 'my mother is in the hospital').kind, 'moment');
+  assert.equal(classifyQuery(data, 'i am afraid').kind, 'moment');
+});
+
+test('reference parser survives punctuation and malformed input', () => {
+  assert.equal(parseRefQuery('John, 3. 16;'), 'john:3:16');
+  assert.equal(parseRefQuery('MT 13!'), 'matthew:13');
+  assert.equal(parseRefQuery(''), null);
+  assert.equal(parseRefQuery('3 16'), null, 'numbers without a book are not a ref');
+  assert.equal(getPassage(data, 'matthew:13:9-3'), null, 'reversed range is rejected');
+});
+
+test('partial ranges are admitted: complete=false, never silently whole', () => {
+  const p = getPassage(data, 'matthew:13:20-31');
+  assert.equal(p.complete, false);
+  assert.equal(getPassage(data, 'mark:4:3-9').complete, true);
+});
+
+test('grade C exists and walks to a tradition node — hollow, sourced, no page to walk to', () => {
+  const cEdge = edgeById(data, 'mt13-2-tradition-bay');
+  assert.equal(cEdge.grade, 'C');
+  const walked = walkEdge(data, cEdge.id);
+  assert.equal(walked.kind, 'tradition');
+  assert.ok(walked.node.text && walked.node.source);
+});
+
+test('multi-witness claims carry multi-warrants (one receipt per witness)', () => {
+  const warrants = edgeWarrants(edgeById(data, 'mt13-3-witnesses-sower'));
+  assert.deepEqual(warrants, ['mark:4:3', 'luke:8:5']);
+});
+
+test('formatRef renders human references', () => {
+  assert.equal(formatRef(data, 'matthew:13:14'), 'Matthew 13:14');
+  assert.equal(formatRef(data, 'mark:4:3-9'), 'Mark 4:3–9');
+  assert.equal(formatRef(data, 'psalms:121'), 'Psalms 121');
+  assert.equal(formatRef(data, 'event:sower'), 'The Sower');
+});
+
+test('missing refs get data-derived honesty, no canon-existence claims', () => {
+  assert.match(missingRefExplanation(data, 'matthew:13:999'), /verse 999 is not on its page here\. Verses 1–23, 31–32 are/);
+  assert.match(missingRefExplanation(data, 'matthew:27'), /not in this edition slice yet/);
+  assert.match(missingRefExplanation(data, 'matthew:99'), /has 28 chapters — there is no chapter 99/);
+});
+
+test('superscriptions ride the passage as titles (ancient testimony, PRD §4.5)', () => {
+  assert.equal(getPassage(data, 'psalms:121').title, 'A Song of degrees.');
+  assert.match(getPassage(data, 'psalms:34:18').title, /before Abimelech/);
+  assert.equal(getPassage(data, 'matthew:13').title, null);
 });

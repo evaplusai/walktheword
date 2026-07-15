@@ -46,7 +46,10 @@
   .scripture .gap{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;
                   text-transform:uppercase;color:var(--p-muted);margin:14px 0;text-align:center}
   .land{background:#F3EDD7;border-radius:4px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
-  .cx2{color:inherit;text-decoration:none;padding:3px 1px;cursor:pointer}
+  .scripture .super{display:block;font-family:var(--serif);font-style:italic;font-size:13.5px;
+                    color:var(--p-muted);margin:0 0 10px}
+  /* padding+negative margin: ~44px tap target without disturbing text flow (Design 02 F8) */
+  .cx2{color:inherit;text-decoration:none;padding:11px 3px;margin:-8px -2px;cursor:pointer}
   .cx2.A{border-bottom:2px solid var(--gA)}
   .cx2.B{border-bottom:2px dotted var(--gB)}
   .cx2.C{border-bottom:2px dashed var(--gC)}
@@ -211,9 +214,9 @@
     <button class="nv" data-nav="notes">Notes</button>
   </nav>
   <div class="scrim" id="scrim"></div>
-  <div class="sheet2" id="sh-card" role="dialog" aria-label="Connection"></div>
-  <div class="sheet2" id="sh-books" role="dialog" aria-label="Books"></div>
-  <div class="sheet2" id="sh-trail" role="dialog" aria-label="Your trail"></div>
+  <div class="sheet2" id="sh-card" role="dialog" aria-modal="true" aria-label="Connection" tabindex="-1"></div>
+  <div class="sheet2" id="sh-books" role="dialog" aria-modal="true" aria-label="Books" tabindex="-1"></div>
+  <div class="sheet2" id="sh-trail" role="dialog" aria-modal="true" aria-label="Your trail" tabindex="-1"></div>
   <div class="toast" id="toast" role="status"></div>
 </div>
 <noscript><p style="max-width:60ch;margin:40px auto;font-family:serif">Walk the Word needs

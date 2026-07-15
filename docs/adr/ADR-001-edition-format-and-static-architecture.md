@@ -26,9 +26,15 @@ is "just a set of static files" whose integrity a skeptic can check.
    - `nodes[]` — events (witness refs, aligned phrases, divergence flags) and threads
      (graded stops). People arrive in Edition 2.
    - `edges[]` — every edge carries `grade` (A/B/C — explicitness, never truth), a
-     resolvable `warrant` ref, a human-readable `claim` phrased as assertion
-     ("X quotes Y", never "Y predicts X" — PRD §6.1), and an `anchor` (verse + exact
-     phrase) that places its door in the text.
+     `warrant` (one ref or an **array** — a multi-witness claim carries one receipt per
+     witness), a human-readable `claim` phrased as assertion ("X quotes Y", never
+     "Y predicts X" — PRD §6.1), and a **required** `anchor` (verse + exact phrase) that
+     places its door in the text. Validation fails on any edge missing grade, warrant,
+     claim, or anchor.
+   - `nodes[]` may include `tradition` nodes (grade-C destinations): curator text plus a
+     mandatory `source` label, always presented as outside-the-text, with no page to
+     walk to. Books may carry `titles` (psalm superscriptions — ancient testimony,
+     rendered distinct from verse text, PRD §4.5/§6.3).
    - `moments[]` / `questions[]` — curator-set routes and cited answers for Search
      (retrieval-only; ADR-004).
 3. **Verification**: `edition.checksum` is SHA-256 over the canonicalized artifact
