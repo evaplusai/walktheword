@@ -76,6 +76,17 @@ missing-ref honesty; psalm superscriptions; notes export; 13 new adversarial tes
 - ✅ Cleared by adversarial trace: trail is sessionStorage-only, no double-count on
   delegated listeners, no harmonization, aligned phrases verbatim in all three witnesses.
 
+## Cycle 2 — text verification (curator sources) — gates T/V ✅, judging
+Curator provided canonical sources (`docs/00_bible/bible_{kjv,web}.pdf`). All from-memory
+scripture replaced via `app/tools/ingest_bible.py`: 13 whole chapters, 399 verses, counts
+matching canonical KJV exactly. Diff vs memory: 63 identical · 3 corrected (Ps 121:1
+superscription convention + **2 genuine misquotes: John 3:17 "condemn him"→"condemn the
+world", 2 Peter 3:16 extra "unto"**). First extraction attempt ate punctuation-free verse
+fragments via the heading heuristic — caught by the diff itself, fixed (headings only
+strip when preceding a verse number or cross-ref line). WEB overlay written
+(`app/data/web-overlay-1.json`), UI toggle → backlog. Tests 31/31. Honesty flag CLOSED
+pending judge grade >96.
+
 ## Cycle 1 verdict — COMPLETE ✅
 All four ADRs implemented, tested, verified, and judged **>96** after one fix round:
 **ADR-001: 87→98 · ADR-002: 81→98 · ADR-003: 84→98 · ADR-004: 89→98.**

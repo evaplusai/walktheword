@@ -53,11 +53,16 @@ is "just a set of static files" whose integrity a skeptic can check.
 
 ## Open items (declared, not hidden — PRD §4.4)
 
-- **Scripture text is curator-unverified.** All passages are KJV rendered from the loop's
-  best knowledge; before public release every verse must be diffed against a canonical
-  public-domain KJV source. The test suite enforces *structural* integrity (anchors are
-  verbatim substrings, warrants resolve); *textual* accuracy needs the canonical diff.
-- Translation display layer (PRD §7) is out of scope for Edition 1.
+- **RESOLVED 2026-07-15 — scripture text verified against the curator-provided KJV source**
+  (`docs/00_bible/bible_kjv.pdf`) via `app/tools/ingest_bible.py`. Chapters now ship whole
+  (399 verses); 2 from-memory misquotes were caught and corrected (John 3:17,
+  2 Peter 3:16); receipt: `docs/loop/text-verification-report.md`. Recorded
+  normalizations: supplied-word brackets → plain text; split-word PDF artifacts repaired
+  explicitly in the tool; Hebrew acrostic markers stripped; psalm superscriptions stay
+  inside verse 1 exactly as the source prints them.
+- **WEB translation** extracted from `docs/00_bible/bible_web.pdf` into
+  `app/data/web-overlay-1.json` — a display layer over the unchanged graph (PRD §7).
+  UI toggle is an ADR-002 open item.
 
 ## Compliance gates (this loop)
 

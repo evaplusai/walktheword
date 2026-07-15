@@ -23,12 +23,18 @@ test('verse text outside doors is untouched and verbatim', () => {
   assert.ok(html.includes(escapeHtml(text)), 'verse without doors passes through whole');
 });
 
-test('chapter renders all included verses in order and admits gaps honestly', () => {
+test('chapter renders all verses whole and in order — no gaps in canonical chapters', () => {
   const html = chapterHTML(data, 'matthew', 13);
   const order = [...html.matchAll(/<span class="v">(\d+)<\/span>/g)].map(m => Number(m[1]));
   assert.deepEqual(order, [...order].sort((a, b) => a - b));
-  assert.equal(order.length, 25);
-  assert.match(html, /verses 24–30 not in this edition slice/);
+  assert.equal(order.length, 58);
+  assert.doesNotMatch(html, /not in this edition slice/);
+});
+
+test('gap admission still works for a future partial chapter (synthetic)', () => {
+  const mini = { books: [{ id: 'x', name: 'X', chapters: { '1': { '1': 'alpha.', '3': 'gamma.' } } }], edges: [] };
+  const html = chapterHTML(mini, 'x', 1);
+  assert.match(html, /verses 2–2 not in this edition slice/);
 });
 
 test('landing verse is highlighted for walk arrivals', () => {
@@ -36,9 +42,10 @@ test('landing verse is highlighted for walk arrivals', () => {
   assert.match(html, /<span class="land"><span class="v">9<\/span>/);
 });
 
-test('psalm superscriptions render as a distinct title line, before verse 1', () => {
+test('psalm superscription opens verse 1 verbatim (source convention; .super stays for future sources)', () => {
   const html = chapterHTML(data, 'psalms', 121);
-  assert.match(html, /^<span class="super">A Song of degrees\.<\/span>/);
+  assert.match(html, /<span class="v">1<\/span>A Song of degrees\. I will lift up mine eyes/);
+  assert.doesNotMatch(html, /class="super"/);
 });
 
 test('doors are keyboard-reachable in markup (role=button, tabindex=0)', () => {

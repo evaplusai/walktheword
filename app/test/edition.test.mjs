@@ -35,6 +35,22 @@ test('passages resolve: verse, range, whole chapter', () => {
   assert.equal(getPassage(data, 'matthew:14:1'), null, 'absent chapters return null, never fake text');
 });
 
+test('every included chapter is WHOLE, matching canonical KJV verse counts', () => {
+  const counts = {
+    'matthew:13': 58, 'mark:4': 41, 'luke:8': 56, 'john:3': 36, 'john:12': 50,
+    'isaiah:6': 13, 'isaiah:41': 29, 'psalms:34': 22, 'psalms:121': 8,
+    'galatians:6': 18, 'hebrews:13': 25, '1peter:1': 25, '2peter:3': 18
+  };
+  for (const [ref, n] of Object.entries(counts)) {
+    assert.equal(getPassage(data, ref).verses.length, n, ref);
+  }
+});
+
+test('curator-source spot checks: the two corrected misquotes read as the source', () => {
+  assert.match(getVerse(data, 'john', 3, 17), /to condemn the world; but that the world through him/);
+  assert.match(getVerse(data, '2peter', 3, 16), /as they do also the other scriptures/);
+});
+
 test('doors: Matthew 13:14 carries the Isaiah quotation edge; walking lands on the verse itself', () => {
   const edges = edgesForVerse(data, 'matthew', 13, 14);
   assert.equal(edges.length, 1);
@@ -126,9 +142,10 @@ test('reference parser survives punctuation and malformed input', () => {
 });
 
 test('partial ranges are admitted: complete=false, never silently whole', () => {
-  const p = getPassage(data, 'matthew:13:20-31');
+  const p = getPassage(data, 'matthew:13:50-99'); // beyond the chapter end
   assert.equal(p.complete, false);
   assert.equal(getPassage(data, 'mark:4:3-9').complete, true);
+  assert.equal(getPassage(data, 'matthew:13:20-31').complete, true, 'whole chapters have no gaps now');
 });
 
 test('grade C exists and walks to a tradition node — hollow, sourced, no page to walk to', () => {
@@ -152,13 +169,13 @@ test('formatRef renders human references', () => {
 });
 
 test('missing refs get data-derived honesty, no canon-existence claims', () => {
-  assert.match(missingRefExplanation(data, 'matthew:13:999'), /verse 999 is not on its page here\. Verses 1–23, 31–32 are/);
+  assert.match(missingRefExplanation(data, 'matthew:13:999'), /verse 999 is not on its page here\. Verses 1–58 are/);
   assert.match(missingRefExplanation(data, 'matthew:27'), /not in this edition slice yet/);
   assert.match(missingRefExplanation(data, 'matthew:99'), /has 28 chapters — there is no chapter 99/);
 });
 
-test('superscriptions ride the passage as titles (ancient testimony, PRD §4.5)', () => {
-  assert.equal(getPassage(data, 'psalms:121').title, 'A Song of degrees.');
-  assert.match(getPassage(data, 'psalms:34:18').title, /before Abimelech/);
-  assert.equal(getPassage(data, 'matthew:13').title, null);
+test('psalm superscriptions ship inside verse 1, exactly as the source prints them', () => {
+  assert.match(getVerse(data, 'psalms', 121, 1), /^A Song of degrees\. I will lift up mine eyes/);
+  assert.match(getVerse(data, 'psalms', 34, 1), /^A Psalm of David, when he changed his behaviour before Abimelech/);
+  assert.equal(getPassage(data, 'psalms:121').title, null, 'no separate titles — the source folds them into v1');
 });
