@@ -49,6 +49,28 @@ test('WEB overlay text carries no split-word extraction artifacts', () => {
   assert.deepEqual(splitSuspects(overlay.books, lexWEB), []);
 });
 
+test('every recorded auto-repair is applied in shipped data (receipt ↔ reality)', () => {
+  const repairs = JSON.parse(readFileSync(new URL('../../docs/00_bible/extracted/autorepairs.json', import.meta.url), 'utf8'));
+  const shipped = { kjv: Object.fromEntries(edition.books.map(b => [b.id, b.chapters])), web: overlay.books };
+  for (const [tr, joins] of Object.entries(repairs)) {
+    for (const { ref, from, to } of joins) {
+      const [book, chv] = ref.split(' ');
+      const [ch, v] = chv.split(':');
+      const text = shipped[tr][book][ch][v];
+      assert.ok(!text.includes(from), `${tr} ${ref}: split "${from}" still shipped`);
+      assert.ok(text.includes(to), `${tr} ${ref}: repaired form "${to}" missing`);
+    }
+  }
+});
+
+test('regressions for judge-found both-fragments-common splits (rounds 2–3)', () => {
+  const kjv = Object.fromEntries(edition.books.map(b => [b.id, b.chapters]));
+  assert.match(kjv.john['12']['49'], /the Father which sent me/);
+  assert.match(overlay.books.john['3']['23'], /because there was much water/);
+  assert.match(overlay.books.isaiah['41']['9'], /called from its corners/);
+  assert.match(kjv.isaiah['6']['6'], /a live coal/, 'legitimate pair must never be joined');
+});
+
 test('no residual Hebrew acrostic markers, [Online] fragments, or double spaces', () => {
   const all = JSON.stringify(edition.books) + JSON.stringify(overlay.books);
   assert.doesNotMatch(all, /[֐-׿]/, 'Hebrew characters');

@@ -69,11 +69,15 @@ def _lexicon(full_txt_path):
     text = open(full_txt_path, encoding='utf-8').read()
     text = text.replace('’', "'").replace('‘', "'")
     text = re.sub(r"([A-Za-z])' (t|s|d|ll|re|ve|m)\b", r"\1'\2", text)
-    lex = Counter()
-    lex.update(w.strip(".,;:?!()'\"[]").lower() for w in text.split())
-    return lex
+    words = [w.strip(".,;:?!()'\"[]").lower() for w in text.split()]
+    lex = Counter(words)
+    # adjacent-pair (bigram) counts — separates real phrases ("pass over", frequent as a
+    # pair) from splits ("fat her", a pair that never legitimately occurs)
+    bigrams = Counter((words[i], words[i + 1]) for i in range(len(words) - 1)
+                      if words[i].isalpha() and words[i + 1].isalpha())
+    return lex, bigrams
 
-def lexicon_split_scan(data, lex):
+def lexicon_split_scan(data, lex, bigrams=None):
     """Detect split words by corpus statistics, per translation: an adjacent token pair
     is a suspect when the JOINED form is a common word of the FULL source corpus
     (>=3 uses) while a fragment is not (<=1 use). Catches 'ca me', 'mot her', 'Chris t',
@@ -103,15 +107,25 @@ def lexicon_split_scan(data, lex):
                     z_frag = lex[z] <= frag or (len(z) == 1 and z not in ('a', 'i', 'o'))
                     if joined >= 3 and (a_frag or z_frag):
                         suspects.append((b, c, v, toks[i], toks[i + 1], a + z))
+                        continue
+                    # both-fragments-common class ('fat her' -> father, 'be cause' ->
+                    # because, round-3 judge finding): the JOIN is a very common word but
+                    # the pair almost never occurs adjacently in the whole corpus.
+                    # Guards: multi-letter fragments only (protects "a live coal"),
+                    # joined must be frequent, pair must be corpus-rare.
+                    if (bigrams is not None and len(a) >= 2 and len(z) >= 2
+                            and joined >= 50 and bigrams[(a, z)] <= 2
+                            and joined // max(1, bigrams[(a, z)]) >= 100):
+                        suspects.append((b, c, v, toks[i], toks[i + 1], a + z))
     return suspects
 
-def lexicon_split_scan_and_join(data, translation, lex):
+def lexicon_split_scan_and_join(data, translation, lex, bigrams):
     """Iteratively join detected splits (removing the interior space, keeping case and
     punctuation) until the scan is clean. Every join is logged and written to the
     autorepairs.json receipt — nothing is fixed silently."""
     joins = []
     for _ in range(5):
-        suspects = lexicon_split_scan(data, lex)
+        suspects = lexicon_split_scan(data, lex, bigrams)
         if not suspects:
             break
         for b, c, v, t1, t2, joined in suspects:
@@ -216,13 +230,13 @@ if __name__ == '__main__':
     all_autorepairs = {}
     for tr in ('kjv', 'web'):
         full_txt = os.path.join(cache_dir, f'{tr}_full.txt')
-        lex = _lexicon(full_txt)
+        lex, bigrams = _lexicon(full_txt)
         data = ingest(full_txt, tr.upper())
         data = apply_repairs(data, tr)
-        joins = lexicon_split_scan_and_join(data, tr, lex)
+        joins = lexicon_split_scan_and_join(data, tr, lex, bigrams)
         all_autorepairs[tr] = joins
         # final fail-loud pass: after joining, a re-scan must find nothing
-        residual = lexicon_split_scan(data, lex)
+        residual = lexicon_split_scan(data, lex, bigrams)
         if residual:
             sys.exit(f'FATAL: residual split-word artifacts in {tr}: {residual[:5]}')
         with open(f'docs/00_bible/extracted/{tr}-edition1.json', 'w', encoding='utf-8') as f:
