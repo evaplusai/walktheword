@@ -8,10 +8,10 @@ auto-continue pattern per Autopilot ADR-037 (`ruflo/ruflo/docs/adr/ADR-037-AUTOP
 
 | ADR | Scope | Gate T (tests) | Gate V (verify) | Gate G round 1 | Fixes | Gate G final | Status |
 |-----|-------|----------------|-----------------|----------------|-------|--------------|--------|
-| ADR-001 | Edition format & static architecture | ✅ 10/10 | ✅ checksum stamped `sha256-2a75…af62c` | **87 FAIL** | queued | — | fix round |
-| ADR-002 | App shell, reading, shelf, Books, teach, notes | ✅ 15/15 (incl. render suite) | ✅ served, 4/4 assets 200 | pending | — | — | judging |
-| ADR-003 | Cards, walk, trail, event, thread | ✅ (walk/edge tests) | ✅ served | **84 FAIL** | queued | — | fix round |
-| ADR-004 | Unified Search | ✅ (classifier tests) | ✅ served | **89 FAIL** | queued | — | fix round |
+| ADR-001 | Edition format & static architecture | ✅ 28/28 | ✅ checksum restamped `sha256-e3a0…3750` | **87 FAIL** | ✅ commit 774448e | **98 PASS** | ✅ done |
+| ADR-002 | App shell, reading, shelf, Books, teach, notes | ✅ 28/28 (incl. render suite) | ✅ served, 4/4 assets 200 | **81 FAIL** | ✅ commit 774448e | **98 PASS** | ✅ done |
+| ADR-003 | Cards, walk, trail, event, thread | ✅ 28/28 | ✅ served | **84 FAIL** | ✅ commit 774448e | **98 PASS** | ✅ done |
+| ADR-004 | Unified Search | ✅ 28/28 | ✅ served | **89 FAIL** | ✅ commit 774448e | **98 PASS** | ✅ done |
 
 ## Standing open items (declared, not hidden)
 - Scripture text is **curator-unverified** (ADR-001): structural integrity is tested
@@ -46,6 +46,21 @@ auto-continue pattern per Autopilot ADR-037 (`ruflo/ruflo/docs/adr/ADR-037-AUTOP
 - (low) Empty query renders "No doors matched" instead of doing nothing.
 - (low) No negative tests for keyword false positives — the bug shipped green.
 
+### Round 1 · ADR-002 — 81 FAIL
+- (med) Continue recency wrong: key-order `at(-1)` != most recent (proven empirically).
+- (med) Doors keyboard-dead (no Enter/Space activation) — core interaction fails WCAG 2.1.1.
+- (med) Dialog sheets: no focus management, non-focusable interactive spans.
+- (low) `#barBook` stale binding off the reading screen; trail double-escape; state
+  mutation before missing-chapter guard; Verify silent failure on non-secure contexts;
+  ~26px door tap targets vs Design 02's F8 fix; no notes export despite ADR §6.
+
+### Fix round 1 (commit 774448e)
+All 26 round-1 defects addressed: word-boundary keyword matcher + curated list; anchors/
+claims/warrants required by validation; warrant arrays; exact-verse return chips via
+edge.anchor; verbatim node cards; tradition (grade C) node + edge; timestamp-based
+continue; keyboard activation + focus containment; 44px tap targets; data-derived
+missing-ref honesty; psalm superscriptions; notes export; 13 new adversarial tests (28 total).
+
 ### Round 1 · ADR-003 — 84 FAIL
 - (med) Return chip doesn't name the exact verse you left (Design 02: "← Matthew 13:14");
   uses `screenLabel(from)` so it reads "← Matthew 13" on a fresh chapter, or a *stale*
@@ -60,3 +75,45 @@ auto-continue pattern per Autopilot ADR-037 (`ruflo/ruflo/docs/adr/ADR-037-AUTOP
   warrant ref renders as "Matthew 13 14".
 - ✅ Cleared by adversarial trace: trail is sessionStorage-only, no double-count on
   delegated listeners, no harmonization, aligned phrases verbatim in all three witnesses.
+
+## Cycle 1 verdict — COMPLETE ✅
+All four ADRs implemented, tested, verified, and judged **>96** after one fix round:
+**ADR-001: 87→98 · ADR-002: 81→98 · ADR-003: 84→98 · ADR-004: 89→98.**
+26 round-1 defects fixed; 9 residual low-severity findings recorded below as the
+**Edition-1.1 follow-up backlog** (next loop cycle — judged code is not patched
+post-verdict; changes re-enter through the loop).
+
+### Follow-up backlog (Edition 1.1 cycle)
+1. Validate duplicate node ids (forkability guard). — graph.mjs
+2. Parse verse-range queries ("mt 13:3-9"). — graph.mjs
+3. Guard stale event/thread node ids in showScreen. — app.js
+4. De-duplicate alignTap id if aligned phrases recur. — app.js
+5. Derive moment-walk trail labels from the moment's label. — app.js
+6. Keyword variants ("hard-day", "my heart is broken"). — edition data
+7. Teach-screen keyboard parity (chips + skip focusable). — app.js
+8. Re-focus first content element after walking (focus currently drops to body). — app.js
+9. Tune door tap-zone bleed (~3-4px into adjacent lines). — index.html
+Plus standing: canonical KJV diff before public release; URL routing (Edition 2);
+rvf-wasm semantic doorway (Edition 3).
+
+### Round 2 · ADR-002 — 98 PASS ✅
+All nine round-1 defects verified fixed, including the re-render-while-open Books path.
+Residuals are the backlog items 7–9 above.
+
+### Round 2 · ADR-004 — 98 PASS ✅
+All six round-1 defects verified fixed; regex-injection, unicode, and precedence probes
+produced no wrong or dishonest routing. Residual (low, follow-up backlog):
+- Trail label for moment walks is hardcoded ("a route for a hard day") — derive from
+  the moment's label before a second moment ships.
+- Phrase keywords need cheap variants ("hard-day", "my heart is broken") — data-side.
+
+### Round 2 · ADR-003 — 98 PASS ✅
+All six round-1 defects verified fixed; tradition card judged constitution-clean.
+Residual (low, latent-only, follow-up backlog):
+- `showScreen` doesn't guard stale event/thread node ids from an old session's trail.
+- `id="alignTap"` would duplicate if an aligned phrase recurred within one witness.
+
+### Round 2 · ADR-001 — 98 PASS ✅
+All round-1 defects verified fixed in code. Residual (low, follow-up backlog):
+- `validateEdition` doesn't check duplicate NODE ids (edge ids are checked).
+- `parseRefQuery` can't parse verse ranges ("mt 13:3-9" → none).
