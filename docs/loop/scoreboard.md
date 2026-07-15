@@ -76,6 +76,15 @@ missing-ref honesty; psalm superscriptions; notes export; 13 new adversarial tes
 - ✅ Cleared by adversarial trace: trail is sessionStorage-only, no double-count on
   delegated listeners, no harmonization, aligned phrases verbatim in all three witnesses.
 
+## Cycle 3 verdict — COMPLETE ✅ (ADR-005: 78 → **97 PASS**)
+Round 1 (78): 8 defects incl. two high — WEB-mode Verify falsely reported mismatch;
+fresh readers could land in text with no translation chosen. All fixed (commit 344b5d5);
+judge re-traced both attack paths and confirmed closed. Round-2 residuals (all low) to
+the Edition-1.1 backlog: search-preview quotes render before the adoption gate; a failed
+overlay fetch permanently overwrites a stored WEB choice; translation switch clears
+open search results; Books sheet still shows WEB button when overlay is down (guarded);
+boot/adoption gates untested (browser-only code).
+
 ## Cycle 3 — ADR-005: start screen & translation choice — gates T/V ✅, judging
 Curator feedback: Matthew 13 was preloaded (a wireframe example promoted by accident).
 Fix: start screen — explicit translation choice (KJV / WEB, both from curator sources,
