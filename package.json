@@ -5,7 +5,7 @@
   "version": "0.1.0",
   "description": "Walk the Word — Edition 1 (Matthew 13 & the seed thread). Static, account-free, verifiable.",
   "scripts": {
-    "test": "node --test app/test/",
+    "test": "node --test app/test/*.test.mjs",
     "checksum": "node app/tools/checksum.mjs",
     "serve": "node app/tools/serve.mjs"
   }
