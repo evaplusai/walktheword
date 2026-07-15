@@ -1,0 +1,1199 @@
+<title>Walk the Word — HX Review &amp; Proposal (Design 02)</title>
+<style>
+  :root{
+    --wall:#ECEDE8;
+    --wall-2:#E2E4DC;
+    --ink:#23271F;
+    --muted:#5C6154;
+    --line:#CFD2C6;
+    --lamp:#8A6D1F;
+    --lamp-ink:#6E5617;
+    --panel:#F7F7F3;
+
+    /* product screen tokens — fixed in both themes: the phones are paper */
+    --paper:#FBFAF5;
+    --paper-2:#F3F1E8;
+    --p-ink:#28251A;
+    --p-muted:#7A745F;
+    --p-line:#E4E0D0;
+    --gA:#33402C;
+    --gB:#44618C;
+    --gC:#A8721F;
+
+    --serif:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;
+    --sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    --mono:ui-monospace,'SF Mono','Cascadia Code',Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --wall:#191C16; --wall-2:#14160F; --ink:#E6E5DB; --muted:#9AA08D;
+      --line:#333829; --lamp:#C9A84C; --lamp-ink:#D8BC6A; --panel:#20241B;
+    }
+  }
+  :root[data-theme="dark"]{
+    --wall:#191C16; --wall-2:#14160F; --ink:#E6E5DB; --muted:#9AA08D;
+    --line:#333829; --lamp:#C9A84C; --lamp-ink:#D8BC6A; --panel:#20241B;
+  }
+  :root[data-theme="light"]{
+    --wall:#ECEDE8; --wall-2:#E2E4DC; --ink:#23271F; --muted:#5C6154;
+    --line:#CFD2C6; --lamp:#8A6D1F; --lamp-ink:#6E5617; --panel:#F7F7F3;
+  }
+
+  *{box-sizing:border-box}
+  body{background:var(--wall);color:var(--ink);font-family:var(--sans);
+       margin:0;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px 96px}
+  a{color:var(--lamp-ink)}
+  a:focus-visible,button:focus-visible{outline:2px solid var(--lamp);outline-offset:2px}
+
+  /* ---------- masthead ---------- */
+  .masthead{padding:72px 0 40px;border-bottom:1px solid var(--line)}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;
+           text-transform:uppercase;color:var(--lamp-ink);margin:0 0 18px}
+  h1{font-family:var(--serif);font-weight:500;font-size:clamp(34px,5vw,52px);
+     line-height:1.08;margin:0;max-width:18ch;text-wrap:balance}
+  .masthead p.lede{max-width:62ch;color:var(--muted);font-size:16.5px;margin:22px 0 0}
+  .masthead p.lede em{color:var(--ink);font-style:normal;font-weight:600}
+
+  /* ---------- verdict + ledger ---------- */
+  .verdict{margin:34px 0 0;border-left:3px solid var(--lamp);padding:4px 0 4px 18px;
+           font-family:var(--serif);font-size:20px;max-width:46ch;text-wrap:balance}
+  .ledger{padding:28px 0;border-bottom:1px solid var(--line)}
+  .ledger .cap{font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+               text-transform:uppercase;color:var(--muted);margin:0 0 16px}
+  .ledger table{width:100%;border-collapse:collapse;font-size:14px}
+  .ledger td{padding:9px 14px 9px 0;border-top:1px solid var(--line);vertical-align:top}
+  .ledger tr:first-child td{border-top:none}
+  .ledger td.id{font-family:var(--mono);font-size:11px;color:var(--muted);
+                white-space:nowrap;width:34px;padding-top:12px}
+  .ledger td.sv{width:92px;padding-top:10px}
+  .ledger td b{font-weight:600}
+  .ledger td .where{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+  .sev{display:inline-block;font:600 9.5px/1 var(--mono);letter-spacing:.12em;
+       text-transform:uppercase;padding:5px 8px;border-radius:4px;white-space:nowrap}
+  .sev.blocker{background:var(--ink);color:var(--wall)}
+  .sev.major{border:1.5px solid var(--ink);color:var(--ink)}
+  .sev.minor{border:1px solid var(--line);color:var(--muted)}
+
+  /* ---------- keep list ---------- */
+  .keep{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+        gap:14px;padding:28px 0;border-bottom:1px solid var(--line)}
+  .keep .k{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+           padding:15px 17px;font-size:13.5px;color:var(--muted);
+           transition:border-color .2s}
+  .keep .k:hover{border-color:var(--lamp)}
+  .keep .k b{display:block;color:var(--ink);font-weight:600;margin-bottom:4px}
+  .keep .cap{grid-column:1/-1;font-family:var(--mono);font-size:11px;
+             letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+
+  /* ---------- scenes ---------- */
+  .scene{display:grid;grid-template-columns:minmax(0,375px) minmax(280px,1fr);
+         gap:24px 56px;padding:64px 0;border-bottom:1px solid var(--line);
+         align-items:start}
+  .scene-head{grid-column:1 / -1;max-width:70ch}
+  .scene-head .num{font-family:var(--mono);font-size:11px;letter-spacing:.18em;
+                   color:var(--lamp-ink);text-transform:uppercase}
+  .scene-head h2{font-family:var(--serif);font-weight:500;font-size:27px;
+                 margin:8px 0 6px;text-wrap:balance}
+  .scene-head .proves{display:inline-block;font-family:var(--mono);font-size:10.5px;
+                      letter-spacing:.12em;text-transform:uppercase;color:var(--muted);
+                      border:1px solid var(--line);border-radius:999px;padding:3px 10px;
+                      margin:0 6px 6px 0}
+  .scene-head p.sub{color:var(--muted);margin:12px 0 0;font-size:15px;max-width:64ch}
+
+  .notes{padding-top:6px}
+  .notes ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:18px}
+  .notes li{display:grid;grid-template-columns:22px 1fr;gap:12px;font-size:14.5px;
+            color:var(--muted);max-width:52ch}
+  .notes li b{color:var(--ink);font-weight:600}
+  .notes .pn{width:20px;height:20px;border-radius:50%;background:var(--lamp);
+             color:var(--wall);font:700 10.5px/20px var(--mono);text-align:center;margin-top:1px}
+  .notes .prd{display:block;margin-top:5px;font-family:var(--mono);font-size:10.5px;
+              letter-spacing:.08em;color:var(--lamp-ink)}
+  .stillcap{grid-column:1/-1;font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+            text-transform:uppercase;color:var(--muted);margin:-40px 0 0}
+
+  @media (max-width:820px){
+    .scene{grid-template-columns:1fr}
+    .phone,.phlow{margin:0 auto}
+  }
+
+  /* ---------- the phone ---------- */
+  .phlow{position:relative;width:375px;max-width:100%}
+  .phlow::before{content:"";position:absolute;inset:-44px -34px;border-radius:70px;
+    background:radial-gradient(60% 52% at 50% 28%,
+      color-mix(in srgb,var(--lamp) 16%,transparent),transparent 72%);
+    pointer-events:none}
+  .livetag{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;
+           letter-spacing:.16em;text-transform:uppercase;color:var(--lamp-ink);margin:0 0 12px}
+  .livetag .dotp{width:7px;height:7px;border-radius:50%;background:var(--lamp);
+                 animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+  .phone{width:375px;max-width:100%;background:#0F110D;border-radius:40px;
+         padding:11px;box-shadow:0 24px 60px -24px rgba(10,12,8,.55);position:relative}
+  .screen{background:var(--paper);border-radius:30px;overflow:hidden;
+          min-height:660px;display:flex;flex-direction:column;position:relative;
+          color:var(--p-ink);font-family:var(--sans)}
+  #proto.screen{height:704px;min-height:0}
+  .appbar{display:flex;align-items:baseline;justify-content:space-between;
+          padding:20px 20px 12px;border-bottom:1px solid var(--p-line)}
+  .appbar .book{font-family:var(--serif);font-size:16px;font-weight:600}
+  .appbar .book .caret{font-size:11px;color:var(--p-muted);margin-left:5px}
+  .appbar .loc{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;
+               text-transform:uppercase;color:var(--p-muted)}
+  .body{padding:18px 22px;flex:1;overflow:hidden}
+
+  .scripture{font-family:var(--serif);font-size:16.5px;line-height:1.85;margin:0}
+  .scripture .v{font-family:var(--mono);font-size:9.5px;color:var(--p-muted);
+                vertical-align:super;margin:0 3px 0 1px}
+  /* Design 02 grade grammar: shape + color, never color alone */
+  .cx2{text-decoration:none;color:inherit;padding:3px 1px;cursor:pointer}
+  .cx2.A{border-bottom:2px solid var(--gA)}
+  .cx2.B{border-bottom:2px dotted var(--gB)}
+  .cx2.C{border-bottom:2px dashed var(--gC)}
+  .chip{display:inline-flex;align-items:center;justify-content:center;
+        min-width:20px;height:20px;padding:0 6px;border-radius:4px;
+        font:700 11px/1 var(--mono);letter-spacing:.02em;cursor:pointer}
+  .chip.A{background:var(--gA);color:#F4F3EA}
+  .chip.B{background:var(--gB);color:#F4F3EA}
+  .chip.C{background:transparent;color:var(--gC);border:1.5px solid var(--gC)}
+  .pin{display:inline-flex;width:16px;height:16px;border-radius:50%;background:var(--lamp);
+       color:#FFFDF4;font:700 9.5px/16px var(--mono);align-items:center;justify-content:center;
+       vertical-align:super;margin-left:4px;flex:none}
+
+  /* prototype screen stack */
+  .pscreen{display:none;flex:1;flex-direction:column;min-height:0}
+  .pscreen.cur{display:flex}
+
+  /* the shelf */
+  .shelf{border-top:1px solid var(--p-line);display:flex;align-items:stretch;
+         padding:8px 10px;gap:6px;background:var(--paper)}
+  .shelf .ed{flex:none;align-self:center;font-family:var(--mono);font-size:9.5px;
+             letter-spacing:.1em;text-transform:uppercase;color:var(--p-muted);
+             padding:0 8px 0 6px;cursor:pointer}
+  .shelf .nv{flex:1;text-align:center;padding:11px 0;border-radius:9px;
+             font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;
+             text-transform:uppercase;color:var(--p-muted);border:1px solid transparent;
+             cursor:pointer;white-space:nowrap}
+  .shelf .nv.on{background:var(--paper-2);color:var(--p-ink);border-color:var(--p-line)}
+  .shelf .nv .cnt{color:var(--lamp-ink)}
+
+  /* return chip */
+  .retchip{display:inline-flex;align-items:center;gap:7px;margin:12px 20px 0;
+           padding:8px 14px;border:1px solid var(--p-line);border-radius:999px;
+           font-size:12.5px;color:var(--p-ink);background:var(--paper-2);cursor:pointer;
+           align-self:flex-start}
+  .retchip .mono{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;
+                 text-transform:uppercase;color:var(--p-muted)}
+
+  /* books sheet furniture */
+  .bgrid{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 4px}
+  .bk{padding:7px 10px;border:1px solid var(--p-line);border-radius:8px;
+      font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--p-ink);
+      cursor:pointer}
+  .bk.on{background:var(--p-ink);color:var(--paper);border-color:var(--p-ink)}
+  .bk.faint{color:var(--p-muted);border-style:dashed;background:transparent}
+  .controw{display:flex;justify-content:space-between;align-items:center;
+           border:1px solid var(--p-line);border-radius:10px;padding:10px 13px;margin:0 0 6px;
+           background:var(--paper-2);font-size:13px;cursor:pointer}
+  .controw .mono{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;
+                 text-transform:uppercase;color:var(--lamp-ink)}
+  .seccap{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;
+          text-transform:uppercase;color:var(--p-muted);margin:14px 0 8px}
+  .edrow{border-top:1px solid var(--p-line);margin-top:16px;padding-top:12px;
+         font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
+         color:var(--p-muted);display:flex;justify-content:space-between;cursor:pointer}
+
+  /* sheets: static (Design-01 style) and live */
+  .dim .body,.dim .appbar{opacity:.34;filter:saturate(.6)}
+  .sheet{position:absolute;left:0;right:0;bottom:0;background:var(--paper);
+         border-radius:22px 22px 30px 30px;border-top:1px solid var(--p-line);
+         box-shadow:0 -18px 44px -18px rgba(30,26,12,.35);padding:16px 20px 20px}
+  .sheet .grab,.sheet2 .grab{width:36px;height:4px;border-radius:2px;background:var(--p-line);margin:0 auto 14px}
+  .sheet .cap,.sheet2 .cap{font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+              text-transform:uppercase;color:var(--p-muted);margin:0 0 12px}
+  .sheet2{position:absolute;left:0;right:0;bottom:0;background:var(--paper);z-index:8;
+          border-radius:22px 22px 30px 30px;border-top:1px solid var(--p-line);
+          box-shadow:0 -18px 44px -18px rgba(30,26,12,.35);padding:16px 20px 20px;
+          transform:translateY(106%);transition:transform .32s cubic-bezier(.3,.9,.3,1)}
+  .sheet2.open{transform:none}
+  .scrim{position:absolute;inset:0;background:rgba(24,20,8,.30);z-index:7;opacity:0;
+         pointer-events:none;transition:opacity .25s}
+  .scrim.on{opacity:1;pointer-events:auto}
+  .toast{position:absolute;left:16px;right:16px;bottom:88px;z-index:9;background:var(--p-ink);
+         color:var(--paper);font-size:12.5px;line-height:1.5;padding:11px 14px;border-radius:10px;
+         opacity:0;transform:translateY(6px);pointer-events:none;
+         transition:opacity .25s,transform .25s}
+  .toast.on{opacity:1;transform:none}
+  @media (prefers-reduced-motion: reduce){
+    .sheet2,.scrim,.toast{transition:none}
+    .livetag .dotp{animation:none}
+  }
+
+  /* connection card innards */
+  .rel{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--p-muted);margin-bottom:10px}
+  .rel b{color:var(--p-ink);font-weight:600}
+  .target{background:var(--paper-2);border-radius:10px;padding:13px 15px;margin:0 0 12px}
+  .target .ref{font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+               text-transform:uppercase;color:var(--p-muted);margin-bottom:6px}
+  .target p{font-family:var(--serif);font-size:15px;line-height:1.6;margin:0}
+  .warrant{font-size:12.5px;color:var(--p-muted);margin:0 0 14px}
+  .warrant u{color:var(--lamp-ink);text-decoration:underline dotted;cursor:pointer}
+  .actions{display:flex;gap:10px}
+  .actions .btn{flex:1}
+  .btn{width:100%;text-align:center;border-radius:10px;padding:12px 0;font-size:14px;
+       font-weight:600;border:1px solid var(--p-line);background:transparent;color:var(--p-ink);
+       cursor:pointer;font-family:var(--sans)}
+  .btn.walk{background:var(--gA);border-color:var(--gA);color:#F4F3EA}
+  .skipline{text-align:center;font-family:var(--mono);font-size:10px;letter-spacing:.1em;
+            text-transform:uppercase;color:var(--p-muted);margin:12px 0 0;cursor:pointer}
+
+  /* trail rail */
+  .arc{list-style:none;margin:6px 0 0;padding:0;position:relative}
+  .arc::before{content:"";position:absolute;left:7px;top:10px;bottom:10px;
+               width:2px;background:var(--p-line)}
+  .arc li{position:relative;padding:0 0 18px 30px}
+  .arc li:last-child{padding-bottom:0}
+  .arc .dot{position:absolute;left:0;top:3px;width:16px;height:16px;border-radius:50%;
+            background:var(--paper);border:2.5px solid var(--gA)}
+  .arc .dot.B{border-color:var(--gB)} .arc .dot.C{border-style:dashed;border-color:var(--gC)}
+  .arc .dot.here{background:var(--lamp);border-color:var(--lamp)}
+  .arc h5{font-family:var(--serif);font-size:15px;margin:0 0 2px;font-weight:600}
+  .arc .ref{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;
+            text-transform:uppercase;color:var(--p-muted)}
+  .arc .ret{float:right;font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;
+            text-transform:uppercase;color:var(--lamp-ink);cursor:pointer}
+  .arc p{font-family:var(--serif);font-size:13px;color:var(--p-muted);
+         line-height:1.5;margin:5px 0 0}
+
+  /* teach cards */
+  .teach{border:1px solid var(--p-line);border-radius:12px;padding:12px 15px;margin-bottom:10px}
+  .teach .row{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+  .teach h6{font-family:var(--serif);font-size:15px;margin:0;font-weight:600}
+  .teach p{font-size:12px;color:var(--p-muted);margin:0;line-height:1.55}
+  .teach p .ex{font-family:var(--serif);color:var(--p-ink)}
+
+  /* search */
+  .door{padding:8px 0 0}
+  .door .prompt{font-family:var(--serif);font-size:19px;line-height:1.4;margin:0 0 4px}
+  .input{border:1.5px solid var(--p-line);border-radius:12px;padding:12px 15px;min-height:44px;
+         font-size:14.5px;color:var(--p-ink);margin:12px 0 8px;background:var(--paper-2)}
+  .input:empty::before{content:"Type here — or tap a try below";color:var(--p-muted)}
+  .routesonly{font-family:var(--mono);font-size:10px;letter-spacing:.1em;
+              text-transform:uppercase;color:var(--p-muted);margin:0 0 12px}
+  .sugrow{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 14px}
+  .sug{border:1px solid var(--p-line);border-radius:999px;padding:7px 12px;font-size:12px;
+       color:var(--p-ink);cursor:pointer;background:var(--paper-2)}
+  .dest{border:1px solid var(--p-line);border-radius:12px;padding:13px 15px;margin-bottom:11px}
+  .dest .ref{font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+             text-transform:uppercase;color:var(--p-muted);display:flex;
+             justify-content:space-between;margin-bottom:6px}
+  .dest .ref .go{color:var(--lamp-ink);letter-spacing:.04em;cursor:pointer}
+  .dest p{font-family:var(--serif);font-size:14.5px;line-height:1.55;margin:0 0 6px}
+  .dest .why{font-size:11.5px;color:var(--p-muted);margin:0}
+  .modecap{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;
+           text-transform:uppercase;color:var(--p-muted);margin:6px 0 10px;
+           display:flex;align-items:center;gap:8px}
+  .modecap::after{content:"";flex:1;height:1px;background:var(--p-line)}
+  .honest{border-left:3px solid var(--gA);padding:2px 0 2px 14px;margin:4px 0 14px}
+  .honest p{font-family:var(--serif);font-size:15.5px;margin:0}
+  .cite{border:1px solid var(--p-line);border-radius:10px;padding:11px 13px;margin-bottom:10px}
+  .cite .ref{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;
+             text-transform:uppercase;color:var(--p-muted);margin-bottom:4px}
+  .cite p{font-family:var(--serif);font-size:13.5px;line-height:1.55;margin:0}
+  .openq{font-size:12px;color:var(--p-muted);margin:12px 0 0}
+
+  /* notebook */
+  .lock{display:flex;gap:8px;align-items:flex-start;background:var(--paper-2);
+        border-radius:10px;padding:11px 13px;font-size:12px;color:var(--p-muted);margin:4px 0 16px}
+  .entry{border-bottom:1px solid var(--p-line);padding:12px 2px}
+  .entry .when{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;
+               text-transform:uppercase;color:var(--p-muted);display:flex;
+               justify-content:space-between;margin-bottom:4px}
+  .entry p{font-family:var(--serif);font-size:14.5px;font-style:italic;margin:0}
+
+  /* event view */
+  .tabs{display:flex;gap:6px;padding:12px 20px 0;font-family:var(--mono);font-size:10.5px;
+        letter-spacing:.08em;text-transform:uppercase;color:var(--p-muted)}
+  .tabs span{padding:6px 12px;border-radius:999px;border:1px solid var(--p-line);cursor:pointer}
+  .tabs span.on{background:var(--p-ink);color:var(--paper);border-color:var(--p-ink)}
+  .aligned2{background:#EFE9D4;border-radius:4px;padding:2px 3px;cursor:pointer}
+  .cmp{margin:14px 20px 0;border:1px solid var(--p-line);border-radius:12px;padding:12px 14px}
+  .cmp .cap{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;
+            text-transform:uppercase;color:var(--p-muted);margin-bottom:9px}
+  .cmp .row{display:grid;grid-template-columns:56px 1fr;gap:10px;padding:6px 0;
+            border-top:1px solid var(--p-line);font-size:12.5px}
+  .cmp .row:first-of-type{border-top:none;padding-top:0}
+  .cmp .who{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;
+            text-transform:uppercase;color:var(--p-muted);padding-top:3px}
+  .cmp .row p{font-family:var(--serif);margin:0;line-height:1.5}
+  .divergence{margin:14px 20px 0;border:1.5px dashed var(--gC);border-radius:10px;
+              padding:11px 13px;font-size:12.5px;color:var(--p-ink)}
+  .divergence .chip{margin-right:6px}
+
+  /* hallway test */
+  .hallway{padding:44px 0;border-bottom:1px solid var(--line)}
+  .hallway .cap{font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+                text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+  .hallway h3{font-family:var(--serif);font-weight:500;font-size:24px;margin:0 0 18px;max-width:40ch}
+  .hallway ol{margin:0;padding:0;list-style:none;display:grid;
+              grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+  .hallway li{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+              padding:16px 18px;font-size:14px;color:var(--muted)}
+  .hallway li b{display:block;color:var(--ink);font-weight:600;margin-bottom:5px}
+  .hallway li .pass{display:block;margin-top:8px;font-family:var(--mono);font-size:10.5px;
+                    letter-spacing:.08em;text-transform:uppercase;color:var(--lamp-ink)}
+
+  .colophon{padding-top:44px;color:var(--muted);font-size:13.5px;max-width:70ch}
+  .colophon .eyebrow{margin-bottom:10px}
+  .colophon code{font-family:var(--mono);font-size:12px;color:var(--ink)}
+
+  @media (prefers-reduced-motion: no-preference){
+    .cx2{transition:background-color .18s ease}
+    .cx2:hover{background:rgba(138,109,31,.12)}
+  }
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <p class="eyebrow">Walk the Word · Design 02 · HX review &amp; proposal · grounded via ruvnet-brain</p>
+  <h1>The rooms are beautiful. The hallways are missing.</h1>
+  <p class="lede">Design 01 gets the hard things right — the paper voice, the grade grammar,
+  the receipt-before-trust card, honest silence. What it never designs is the
+  <em>experience between the screens</em>: no way to move among the eight surfaces, no way
+  back once you walk, no moment where the product teaches its own vocabulary. This page
+  keeps the language and adds the hallways — nine findings, and <em>a working wireframe you
+  can walk yourself</em>, below.</p>
+  <p class="verdict">Keep every pixel of the voice. Fix wayfinding, memory of the walk,
+  and the first five minutes.</p>
+</header>
+
+<!-- ================= LIVE PROTOTYPE ================= -->
+<section class="scene">
+  <div class="scene-head">
+    <p class="num">The proposal, live</p>
+    <h2>Don’t read the fix — walk it</h2>
+    <span class="proves">Tappable wireframe</span><span class="proves">Every finding, wired in</span>
+    <p class="sub">This phone runs the whole proposed experience: the first-open teaching,
+    the doors, the receipt card, the walk to Isaiah and the way back, the Trail, the Books
+    sheet, unified Search, and the event witnesses. The annotated stills further down are
+    the reasoning; this is the proof.</p>
+  </div>
+
+  <div class="phlow">
+    <p class="livetag"><span class="dotp"></span>Live wireframe — tap things</p>
+    <div class="phone"><div class="screen" id="proto">
+
+      <!-- FIRST OPEN -->
+      <div class="pscreen cur" id="scr-teach" data-tab="">
+        <div class="appbar"><span class="book">Before you walk</span><span class="loc">30 sec · once</span></div>
+        <div class="body">
+          <p style="font-family:var(--serif);font-size:18px;line-height:1.45;margin:2px 0 14px">
+            Underlined phrases are doors.<br>The line tells you what kind.</p>
+          <div class="teach">
+            <div class="row"><span class="chip A" onclick="gradeHelp('A')">A</span><h6>Stated</h6></div>
+            <p>The text says it in words. <span class="ex">“…the prophecy of Esaias, which
+            saith” — Matthew names Isaiah.</span> A <b>solid</b> line.</p>
+          </div>
+          <div class="teach">
+            <div class="row"><span class="chip B" onclick="gradeHelp('B')">B</span><h6>Textual, unstated</h6></div>
+            <p>The books share it without saying so. <span class="ex">Matthew, Mark and Luke
+            all tell the sower.</span> A <b>dotted</b> line.</p>
+          </div>
+          <div class="teach">
+            <div class="row"><span class="chip C" onclick="gradeHelp('C')">C</span><h6>Tradition</h6></div>
+            <p>Outside the text — always hollow. <span class="ex">Peter’s death in Rome —
+            the canon itself is silent.</span> A <b>dashed</b> line.</p>
+          </div>
+          <p style="font-size:11.5px;color:var(--p-muted);margin:2px 0 12px">A grade measures
+          how explicit a connection is — never whether it is true.</p>
+          <button class="btn walk" onclick="startReading()">Open Matthew 13 →</button>
+          <p class="skipline" onclick="startReading()">Skip — every chip re-explains itself when tapped</p>
+        </div>
+      </div>
+
+      <!-- READING: MATTHEW 13 -->
+      <div class="pscreen" id="scr-read" data-tab="books">
+        <div class="appbar">
+          <span class="book" onclick="openSheet('sh-books')">Matthew<span class="caret">⌄</span></span>
+          <span class="loc">Ch 13 · v 1–17</span>
+        </div>
+        <div class="body">
+          <p class="scripture">
+            <span class="v">3</span>And he spake many things unto them in parables, saying,
+            Behold, <a class="cx2 A" onclick="openSheet('sh-sower')">a sower went forth to sow</a>;
+            <span class="v">4</span>And when he sowed, some seeds fell by the way side, and
+            the fowls came and devoured them up:
+            <span class="v">7</span>And some fell among
+            <a class="cx2 B" onclick="gradeHelp('B')">thorns</a>;
+            and the thorns sprung up, and choked them:
+            <span class="v">14</span>And in them is fulfilled
+            <a class="cx2 A" onclick="openSheet('sh-esaias')">the prophecy of Esaias, which saith</a>,
+            By hearing ye shall hear, and shall not understand…
+          </p>
+        </div>
+      </div>
+
+      <!-- ISAIAH 6 -->
+      <div class="pscreen" id="scr-isaiah" data-tab="books">
+        <div class="appbar">
+          <span class="book" onclick="openSheet('sh-books')">Isaiah<span class="caret">⌄</span></span>
+          <span class="loc">Ch 6 · v 9</span>
+        </div>
+        <span class="retchip" onclick="show('scr-read')">← Matthew 13:14 <span class="mono">1 tap back</span></span>
+        <div class="body">
+          <p class="scripture"><span class="v">9</span>And he said, Go, and tell this people,
+          Hear ye indeed, but understand not; and see ye indeed, but perceive not.</p>
+          <p style="font-size:12px;color:var(--p-muted);margin:16px 0 0">You landed in
+          Isaiah’s own book, at the verse itself — keep reading forward, or take the chip back.</p>
+        </div>
+      </div>
+
+      <!-- EVENT: THE SOWER -->
+      <div class="pscreen" id="scr-event" data-tab="books">
+        <div class="appbar"><span class="book">The Sower</span><span class="loc" id="ev-loc">Matthew 13:3–9</span></div>
+        <span class="retchip" onclick="show('scr-read')">← Matthew 13:3 <span class="mono">1 tap back</span></span>
+        <div class="tabs" id="ev-tabs">
+          <span class="on" onclick="evTab(0)">Matthew</span>
+          <span onclick="evTab(1)">Mark</span>
+          <span onclick="evTab(2)">Luke</span>
+        </div>
+        <div class="body" style="padding-bottom:0;flex:none">
+          <p class="scripture" style="font-size:15px" id="ev-text"></p>
+          <p style="font-size:11px;color:var(--p-muted);margin:8px 0 0">Tap the tinted
+          phrase to hear the other witnesses.</p>
+        </div>
+        <div class="cmp" id="ev-cmp" style="display:none">
+          <p class="cap">The same moment, each voice</p>
+          <div id="ev-cmp-rows"></div>
+        </div>
+        <div class="divergence"><span class="chip B" onclick="gradeHelp('B')">B</span><b>Mark alone</b>
+          carries a fourth seed parable (Mark 4:26–29). Shown, graded, unresolved.</div>
+      </div>
+
+      <!-- SEARCH -->
+      <div class="pscreen" id="scr-search" data-tab="search">
+        <div class="appbar"><span class="book">Search</span><span class="loc">Bounded to the text</span></div>
+        <div class="body door">
+          <p class="prompt">What is happening —<br>or what do you want to know?</p>
+          <div class="input" id="sInput"></div>
+          <p class="routesonly">Search only opens doors. It never writes answers.</p>
+          <div class="sugrow">
+            <span class="sug" onclick="doSearch(0)">my mother is in the hospital</span>
+            <span class="sug" onclick="doSearch(1)">who wrote Hebrews?</span>
+            <span class="sug" onclick="doSearch(2)">john 3 16</span>
+          </div>
+          <div id="sRes"></div>
+        </div>
+      </div>
+
+      <!-- JOHN 3 -->
+      <div class="pscreen" id="scr-john" data-tab="books">
+        <div class="appbar">
+          <span class="book" onclick="openSheet('sh-books')">John<span class="caret">⌄</span></span>
+          <span class="loc">Ch 3 · v 14–17</span>
+        </div>
+        <span class="retchip" onclick="show('scr-search')">← Search <span class="mono">1 tap back</span></span>
+        <div class="body">
+          <p class="scripture">
+            <span class="v">14</span>And <a class="cx2 A" onclick="toast('Another Grade A door — John names Moses in words (Numbers 21:9). Same pattern in every book.')">as
+            Moses lifted up the serpent in the wilderness</a>, even so must the Son of man
+            be lifted up:
+            <span class="v">16</span><span class="aligned2">For God so loved the world, that
+            he gave his only begotten Son…</span>
+          </p>
+          <p style="font-size:12px;color:var(--p-muted);margin:16px 0 0">A typed reference
+          lands on the page itself — in its book, in order, doors intact.</p>
+        </div>
+      </div>
+
+      <!-- PSALM 121 -->
+      <div class="pscreen" id="scr-psalm" data-tab="books">
+        <div class="appbar">
+          <span class="book" onclick="openSheet('sh-books')">Psalms<span class="caret">⌄</span></span>
+          <span class="loc">Ps 121 · whole psalm</span>
+        </div>
+        <span class="retchip" onclick="show('scr-search')">← Search <span class="mono">1 tap back</span></span>
+        <div class="body">
+          <p class="scripture">
+            <span class="v">1</span>I will lift up mine eyes unto the hills, from whence
+            cometh my help.
+            <span class="v">2</span>My help cometh from the LORD, which made heaven and earth.
+            <span class="v">3</span>He will not suffer thy foot to be moved: he that keepeth
+            thee will not slumber.
+          </p>
+          <p style="font-size:12px;color:var(--p-muted);margin:16px 0 0">A song for the
+          road, sung by pilgrims on a hard journey — its backstory, never advice.</p>
+        </div>
+      </div>
+
+      <!-- NOTES -->
+      <div class="pscreen" id="scr-notes" data-tab="notes">
+        <div class="appbar"><span class="book">My notebook</span><span class="loc">This device only</span></div>
+        <div class="body">
+          <div class="lock">🔒<span><b>Stored on this device only.</b> No account, no sync,
+          no server. Not even the curator can read these.</span></div>
+          <div class="entry">
+            <div class="when"><span>14 Jul 2026</span><span>Matthew 13:8</span></div>
+            <p>Third read this year — “good ground” finally lands.</p>
+          </div>
+          <div class="entry">
+            <div class="when"><span>29 Jun 2026</span><span>Mt 13:14 → Isa 6:9</span></div>
+            <p>Never saw this quotation before today.</p>
+          </div>
+          <p style="font-size:12px;color:var(--p-muted);margin:16px 0 0">“Keep this walk”
+          in the Trail saves your steps here as one dated line.</p>
+        </div>
+      </div>
+
+      <!-- scrim + live sheets -->
+      <div class="scrim" id="scrim" onclick="closeSheets()"></div>
+
+      <div class="sheet2" id="sh-esaias">
+        <div class="grab"></div>
+        <div class="rel"><span class="chip A" onclick="gradeHelp('A')">A</span><b>Matthew 13:14 quotes Isaiah 6:9</b></div>
+        <div class="target">
+          <div class="ref">Isaiah 6:9 · KJV</div>
+          <p>And he said, Go, and tell this people, Hear ye indeed, but understand not;
+          and see ye indeed, but perceive not.</p>
+        </div>
+        <p class="warrant">Warrant: <u onclick="toast('The warrant is the exact verse that creates this edge — Matthew 13:14, “in them is fulfilled the prophecy of Esaias…”')">Matthew 13:14 — “in them is fulfilled the prophecy of Esaias…”</u></p>
+        <div class="actions">
+          <button class="btn" onclick="closeSheets()">Stay here</button>
+          <button class="btn walk" onclick="walkTo('scr-isaiah','Matthew 13:14 → Isaiah 6:9','Walked · Grade A · quotation','A')">Walk to Isaiah 6 →</button>
+        </div>
+      </div>
+
+      <div class="sheet2" id="sh-sower">
+        <div class="grab"></div>
+        <div class="rel"><span class="chip B" onclick="gradeHelp('B')">B</span><b>One event · three witnesses</b></div>
+        <div class="target">
+          <div class="ref">The Sower · Matthew 13 · Mark 4 · Luke 8</div>
+          <p>Matthew, Mark and Luke each tell the sower in their own voice — parallel,
+          unmerged, differences kept.</p>
+        </div>
+        <div class="actions">
+          <button class="btn" onclick="closeSheets()">Stay here</button>
+          <button class="btn walk" onclick="walkTo('scr-event','Matthew 13:3 → The Sower','Opened event · 3 witnesses','B')">See the witnesses →</button>
+        </div>
+      </div>
+
+      <div class="sheet2" id="sh-books">
+        <div class="grab"></div>
+        <p class="cap">Books · two taps to anywhere</p>
+        <div class="controw" onclick="go('scr-read','Matthew 13')"><span>Continue · <b>Matthew 13:14</b></span><span class="mono">Resume →</span></div>
+        <p class="seccap">New Testament</p>
+        <div class="bgrid">
+          <span class="bk on" onclick="go('scr-read','Matthew 13')">Matthew</span>
+          <span class="bk" onclick="stocked()">Mark</span>
+          <span class="bk" onclick="stocked()">Luke</span>
+          <span class="bk" onclick="go('scr-john','John 3')">John</span>
+          <span class="bk" onclick="stocked()">Acts</span>
+          <span class="bk" onclick="stocked()">Romans</span>
+          <span class="bk faint">+ 21 more</span>
+        </div>
+        <p class="seccap">Matthew · chapters</p>
+        <div class="bgrid">
+          <span class="bk" onclick="stocked()">1</span><span class="bk" onclick="stocked()">5</span>
+          <span class="bk" onclick="stocked()">12</span>
+          <span class="bk on" onclick="go('scr-read','Matthew 13')">13</span>
+          <span class="bk" onclick="stocked()">14</span><span class="bk" onclick="stocked()">15</span>
+          <span class="bk faint">… 28</span>
+        </div>
+        <p class="seccap">Old Testament</p>
+        <div class="bgrid">
+          <span class="bk" onclick="stocked()">Genesis</span>
+          <span class="bk" onclick="go('scr-psalm','Psalm 121')">Psalms</span>
+          <span class="bk" onclick="go('scr-isaiah','Isaiah 6')">Isaiah</span>
+          <span class="bk faint">+ 36 more</span>
+        </div>
+        <div class="edrow" onclick="toast('Edition 1 · published 2026 · what changed · methodology · fork this graph · corrections@walktheword.example')"><span>Edition 1 · what changed</span><span>Corrections</span></div>
+      </div>
+
+      <div class="sheet2" id="sh-trail">
+        <div class="grab"></div>
+        <p class="cap">Your trail · this session · stays on this device</p>
+        <ol class="arc" id="trailList"></ol>
+        <p style="font-size:11px;color:var(--p-muted);margin:14px 0 0" >
+          Clears with the session ·
+          <u style="cursor:pointer;color:var(--lamp-ink)" onclick="toast('Saved to your notebook as one dated line. (Demo — nothing actually stored.)')">keep this walk in Notes</u></p>
+      </div>
+
+      <div class="toast" id="toast"></div>
+
+      <!-- the shelf -->
+      <div class="shelf">
+        <span class="ed" onclick="toast('Edition 1 · published 2026 · tap Books for the full plate')">Ed 1</span>
+        <span class="nv" data-tab="books" onclick="openSheet('sh-books')">Books</span>
+        <span class="nv" data-tab="trail" onclick="openSheet('sh-trail')">Trail <span class="cnt tcount">· 0</span></span>
+        <span class="nv" data-tab="search" onclick="show('scr-search')">Search</span>
+        <span class="nv" data-tab="notes" onclick="show('scr-notes')">Notes</span>
+      </div>
+
+    </div></div>
+  </div>
+
+  <div class="notes"><ol>
+    <li><span class="pn">1</span><span><b>Open a door.</b> Tap
+      <i>“the prophecy of Esaias”</i> — the receipt card lifts: grade, the target verse
+      verbatim, the warrant, one verb. Then <b>Walk to Isaiah 6</b>.
+      <span class="prd">Finding F1 · connection card kept from Design 01</span></span></li>
+    <li><span class="pn">2</span><span><b>Come back.</b> In Isaiah, the
+      <i>“← Matthew 13:14”</i> chip returns you in one tap. Open <b>Trail</b> in the shelf —
+      every step was recorded, each with a Return.
+      <span class="prd">Finding F2 · on-device, self-clearing</span></span></li>
+    <li><span class="pn">3</span><span><b>Go anywhere.</b> Tap <b>Books</b> (or the
+      “Matthew ⌄” title): book → chapter, two taps. The demo stocks Matthew 13, Isaiah 6,
+      John 3 and Psalm 121.
+      <span class="prd">Findings F1, F7 · the Books sheet</span></span></li>
+    <li><span class="pn">4</span><span><b>Ask three ways.</b> In <b>Search</b>, try each
+      suggestion: a hard day opens doors, a question returns citations — including honest
+      silence — and “john 3 16” jumps straight to the page.
+      <span class="prd">Findings F5, F7 · one box, never composed</span></span></li>
+    <li><span class="pn">5</span><span><b>Hear the witnesses.</b> Tap
+      <i>“a sower went forth to sow”</i>, open the event, switch Matthew / Mark / Luke,
+      and tap the tinted phrase to compare their exact words.
+      <span class="prd">Finding F6 · harmonization still impossible</span></span></li>
+    <li><span class="pn">6</span><span><b>Tap any grade chip, anywhere.</b> It re-explains
+      itself in one line — the teaching screen you saw first never has to be found again.
+      <span class="prd">Findings F3, F4 · solid / dotted / dashed carries the grade too</span></span></li>
+  </ol></div>
+</section>
+
+<div class="ledger">
+  <p class="cap">Findings ledger — ranked by harm to a first-time reader</p>
+  <table>
+    <tr><td class="id">F1</td><td class="sv"><span class="sev blocker">Blocker</span></td>
+      <td><b>No navigation exists between the eight surfaces.</b> From the reading view there is no route to the Doorway, Notebook, or any Person/Thread/Event screen — each Design 01 wireframe is an island.
+      <span class="where">Fix: the shelf + the Books sheet — Proposals 01·A and 01·B</span></td></tr>
+    <tr><td class="id">F2</td><td class="sv"><span class="sev blocker">Blocker</span></td>
+      <td><b>Walking has no way back.</b> “Walk to Isaiah 6 →” is the product’s core verb, yet nothing records the step or offers a return. Three walks deep, the reader is lost — the exact anxiety a walkable text must never create.
+      <span class="where">Fix: the trail — Proposal 02</span></td></tr>
+    <tr><td class="id">F3</td><td class="sv"><span class="sev major">Major</span></td>
+      <td><b>The grade vocabulary is never taught.</b> A/B/C is the product’s central idea, but its legend lives only in this design document. A first-time reader sees colored dots and guesses.
+      <span class="where">Fix: three doors on first open — Proposal 03</span></td></tr>
+    <tr><td class="id">F4</td><td class="sv"><span class="sev major">Major</span></td>
+      <td><b>Grade is encoded by color alone.</b> Green vs. blue vs. amber underlines with a 7px tick — indistinguishable for red-green color-blind readers (~8% of men) and invisible at reading speed.
+      <span class="where">Fix: shape carries the grade too — Proposal 03</span></td></tr>
+    <tr><td class="id">F5</td><td class="sv"><span class="sev major">Major</span></td>
+      <td><b>Two text boxes, one confused user.</b> “Moment doorway” and “Ask the archive” are both empty inputs with different rules. Nobody will learn which is which; they’ll type the same words into both.
+      <span class="where">Fix: one Search box, three honest answers — Proposal 04</span></td></tr>
+    <tr><td class="id">F6</td><td class="sv"><span class="sev major">Major</span></td>
+      <td><b>Event columns don’t fit a phone.</b> 150px columns force 12px serif — below comfortable reading size — and the 55%-opacity “peek” column reads as disabled, not swipeable.
+      <span class="where">Fix: one witness at full width — Proposal 05</span></td></tr>
+    <tr><td class="id">F7</td><td class="sv"><span class="sev major">Major</span></td>
+      <td><b>No way to jump to a reference or another chapter.</b> A pastor who needs John 3:16 has no path to it; even Matthew 14 is unreachable from Matthew 13. Fix: the Books sheet (Proposal 01·B) reaches any chapter in two taps; Search accepts references (“mt 14”, “john 3 16”) as a first-class input.</td></tr>
+    <tr><td class="id">F8</td><td class="sv"><span class="sev minor">Minor</span></td>
+      <td><b>Touch targets are below minimum.</b> 16px pins, superscript verse numbers, and tightly-set dotted phrases sit under the ~44px comfortable tap size. Fix: whole-phrase tap zones with generous line-height (1.85), pins only in design docs, never in product.</td></tr>
+    <tr><td class="id">F9</td><td class="sv"><span class="sev minor">Minor</span></td>
+      <td><b>The edition footer spends a permanent row on rare needs.</b> Accountability matters; a persistent strip doesn’t. Fix: fold “Ed 1” into the shelf as its quietest item — one tap opens the full plate (changelog, methodology, corrections, verify).</td></tr>
+  </table>
+</div>
+
+<div class="keep">
+  <p class="cap">Unchanged — the parts Design 01 already gets right</p>
+  <div class="k"><b>The paper voice.</b> Book serif for scripture, mono for receipts, no brand color competing with the text. Nothing here touches it.</div>
+  <div class="k"><b>The connection card.</b> Grade → verbatim target → warrant link → one verb. The best screen in the set; Proposal 03 only adds a “what does A mean?” tap on the chip.</div>
+  <div class="k"><b>Honest silence.</b> “The text does not name its author” as a first-class answer stays exactly as drawn.</div>
+  <div class="k"><b>The constitution.</b> Every proposal below was checked against §7: the shelf is not engagement chrome, the trail is on-device and self-clearing, nothing composes content.</div>
+</div>
+
+<!-- ================= P1A THE SHELF ================= -->
+<section class="scene">
+  <div class="scene-head">
+    <p class="num">Proposal 01·A · fixes F1, F9 · annotated still — live above</p>
+    <h2>The shelf — four plain words on every screen</h2>
+    <span class="proves">Wayfinding</span><span class="proves">No jargon in the chrome</span>
+    <p class="sub">A quiet bottom bar: <b>Books</b> (go anywhere in the Bible — Proposal 01·B),
+    <b>Trail</b> (the steps you’ve walked, and the way back), <b>Search</b> (type anything —
+    a feeling, a question, a reference), <b>Notes</b> (your private notebook). The labels are
+    deliberately ordinary words: a tab a reader has to ask about is a failed tab. The
+    product’s poetic vocabulary — walking, doors, doorways — lives in the copy, never in
+    the chrome.</p>
+  </div>
+  <div class="phone"><div class="screen">
+    <div class="appbar">
+      <span class="book">Matthew<span class="caret">⌄</span><span class="pin">1</span></span>
+      <span class="loc">Ch 13 · v 1–17</span>
+    </div>
+    <div class="body">
+      <p class="scripture">
+        <span class="v">3</span>And he spake many things unto them in parables, saying,
+        Behold, <a class="cx2 A">a sower went forth to sow</a>;
+        <span class="v">4</span>And when he sowed, some seeds fell by the way side, and the
+        fowls came and devoured them up:
+        <span class="v">7</span>And some fell among <a class="cx2 B">thorns</a>;
+        and the thorns sprung up, and choked them:
+        <span class="v">14</span>And in them is fulfilled
+        <a class="cx2 A">the prophecy of Esaias, which saith</a>,
+        By hearing ye shall hear, and shall not understand…
+      </p>
+    </div>
+    <div class="shelf">
+      <span class="ed">Ed 1<span class="pin">3</span></span>
+      <span class="nv on">Books</span>
+      <span class="nv">Trail <span class="cnt">· 2</span><span class="pin">2</span></span>
+      <span class="nv">Search</span>
+      <span class="nv">Notes</span>
+    </div>
+  </div></div>
+  <div class="notes"><ol>
+    <li><span class="pn">1</span><span><b>Two roads to the same place.</b> Tapping
+      “Matthew ⌄” in the header and tapping <b>Books</b> in the shelf open the same
+      Books sheet (Proposal 01·B) — one pre-opened to where you are, one to the whole
+      canon. Users never have to remember which is “correct.”
+      <span class="prd">PRD §6.5 books are the foundation layer · F1</span></span></li>
+    <li><span class="pn">2</span><span><b>Trail shows a count, never a badge-storm.</b>
+      “· 2” means two steps walked this session — orientation, not gamification. It clears
+      when the trail clears.
+      <span class="prd">PRD §7 no engagement mechanics — checked</span></span></li>
+    <li><span class="pn">3</span><span><b>The edition plate moves behind one tap.</b>
+      Changelog, methodology, corrections address, “verify this edition” — all live at the
+      bottom of the Books sheet, no longer a permanent strip on every screen.
+      <span class="prd">PRD §5 edition footer · F9</span></span></li>
+  </ol></div>
+</section>
+
+<!-- ================= P1B BOOKS SHEET ================= -->
+<section class="scene">
+  <div class="scene-head">
+    <p class="num">Proposal 01·B · fixes F1, F7, F9 · annotated still — live above</p>
+    <h2>The Books sheet — anywhere in the Bible in two taps</h2>
+    <span class="proves">Book, then chapter</span><span class="proves">Canonical order</span>
+    <p class="sub">This is the answer to “how do I get to each place”: tap <b>Books</b>,
+    tap a book, tap a chapter — you’re reading. The sheet remembers where you left off in
+    every book you’ve opened, and Search does the same trip in one line for anyone who
+    already knows the address (“john 3 16”).</p>
+  </div>
+  <div class="phone"><div class="screen dim">
+    <div class="appbar">
+      <span class="book">Matthew<span class="caret">⌄</span></span>
+      <span class="loc">Ch 13 · v 1–17</span>
+    </div>
+    <div class="body">
+      <p class="scripture"><span class="v">3</span>And he spake many things unto them in
+      parables, saying, Behold, a sower went forth to sow…</p>
+    </div>
+    <div class="sheet">
+      <div class="grab"></div>
+      <p class="cap">Books · two taps to anywhere</p>
+      <div class="controw"><span>Continue · <b>Matthew 13:14</b><span class="pin">2</span></span><span class="mono">Resume →</span></div>
+      <p class="seccap">New Testament · you are here</p>
+      <div class="bgrid">
+        <span class="bk on">Matthew</span><span class="bk">Mark</span><span class="bk">Luke</span>
+        <span class="bk">John</span><span class="bk">Acts</span><span class="bk">Romans</span>
+        <span class="bk faint">+ 21 more</span>
+      </div>
+      <p class="seccap">Matthew · chapters<span class="pin">1</span></p>
+      <div class="bgrid">
+        <span class="bk">1</span><span class="bk">5</span><span class="bk">6</span>
+        <span class="bk">12</span><span class="bk on">13</span><span class="bk">14</span>
+        <span class="bk">15</span><span class="bk faint">… 28</span>
+      </div>
+      <p class="seccap">Old Testament</p>
+      <div class="bgrid">
+        <span class="bk">Genesis</span><span class="bk">Exodus</span><span class="bk">Psalms</span>
+        <span class="bk">Isaiah</span><span class="bk faint">+ 35 more</span>
+      </div>
+      <div class="edrow"><span>Edition 1 · what changed<span class="pin">3</span></span><span>Corrections</span></div>
+    </div>
+  </div></div>
+  <div class="notes"><ol>
+    <li><span class="pn">1</span><span><b>Book, then chapter, then reading.</b> Choosing a
+      book unfolds its chapter numbers in place — no second screen, no hierarchy to learn.
+      All 66 books in canonical order, current book marked. (The wireframe elides rows;
+      the product shows every book.)
+      <span class="prd">PRD §6.5 reading a book straight through is a first-class path · F1, F7</span></span></li>
+    <li><span class="pn">2</span><span><b>Continue is the top row.</b> The sheet keeps your
+      last position in each opened book — a daily reader lands back in their psalm in one
+      tap. Stored on-device, like the notebook and the trail.
+      <span class="prd">PRD §3 the daily reader · §4.5 on-device</span></span></li>
+    <li><span class="pn">3</span><span><b>The edition plate lives here now.</b> Number,
+      changelog, corrections — the accountability surface sits at the root of navigation
+      instead of costing a row on every screen.
+      <span class="prd">PRD §5 edition footer · F9</span></span></li>
+  </ol></div>
+</section>
+
+<!-- ================= P2 THE TRAIL ================= -->
+<section class="scene">
+  <div class="scene-head">
+    <p class="num">Proposal 02 · fixes F2 · annotated still — live above</p>
+    <h2>The trail — every walk can be retraced</h2>
+    <span class="proves">Walkable, both directions</span><span class="proves">On-device only</span>
+    <p class="sub">Landing in Isaiah after a walk, a return chip names where you came from.
+    The Trail sheet shows the whole walk as the same rail the person and thread views use —
+    one visual idea everywhere. Tap any step to return to it.</p>
+  </div>
+  <div class="phone"><div class="screen dim">
+    <div class="appbar">
+      <span class="book">Isaiah<span class="caret">⌄</span></span>
+      <span class="loc">Ch 6 · v 9</span>
+    </div>
+    <span class="retchip">← Matthew 13:14 <span class="mono">1 tap back</span><span class="pin">1</span></span>
+    <div class="body">
+      <p class="scripture"><span class="v">9</span>And he said, Go, and tell this people,
+      Hear ye indeed, but understand not; and see ye indeed, but perceive not.</p>
+    </div>
+    <div class="sheet">
+      <div class="grab"></div>
+      <p class="cap">Your trail · this session · stays on this device<span class="pin">3</span></p>
+      <ol class="arc">
+        <li><span class="dot"></span><span class="ret">Return</span>
+          <h5>Matthew 13</h5>
+          <span class="ref">Started reading · the sower</span></li>
+        <li><span class="dot"></span><span class="ret">Return</span>
+          <h5>Matthew 13:14 → Isaiah 6:9</h5>
+          <span class="ref">Walked · Grade A · quotation<span class="pin">2</span></span></li>
+        <li><span class="dot here"></span>
+          <h5>Isaiah 6 — you are here</h5>
+          <span class="ref">Reading in book context</span></li>
+      </ol>
+    </div>
+  </div></div>
+  <div class="notes"><ol>
+    <li><span class="pn">1</span><span><b>The return chip is the safety rope.</b> It appears
+      only after a walk and names the exact verse you left. Readers explore boldly when
+      backing out is guaranteed — this single element is what makes “walkable” feel safe
+      instead of disorienting.
+      <span class="prd">PRD §4.1 walkable · F2</span></span></li>
+    <li><span class="pn">2</span><span><b>Steps carry their grades.</b> The trail reuses the
+      arc rail from person and thread views, so the reader meets one visual grammar, not
+      three. Each hop records which door it went through.
+      <span class="prd">Grounded: progressive disclosure, ADR-053 §Design Principles</span></span></li>
+    <li><span class="pn">3</span><span><b>The trail is a session memory, not a history log.</b>
+      On-device, self-clearing, never synced — same privacy architecture as the notebook.
+      A “keep this walk” action saves it <i>into</i> the notebook as one dated line.
+      <span class="prd">PRD §4.5 · §7 no accounts, no tracking</span></span></li>
+  </ol></div>
+</section>
+
+<!-- ================= P3 FIRST OPEN ================= -->
+<section class="scene">
+  <div class="scene-head">
+    <p class="num">Proposal 03 · fixes F3, F4 · annotated still — live above</p>
+    <h2>Three doors — the grade system taught in one screen</h2>
+    <span class="proves">First-run only</span><span class="proves">Replayable from any chip</span>
+    <p class="sub">One screen before first reading: the three grades in plain words, each
+    shown as it will actually appear. From then on, tapping any grade chip anywhere replays
+    its one-line meaning. And shape now carries the grade alongside color — A is solid,
+    B is dotted, C is dashed — legible to every eye and at reading speed.</p>
+  </div>
+  <div class="phone"><div class="screen">
+    <div class="appbar">
+      <span class="book">Before you walk</span>
+      <span class="loc">30 seconds · once</span>
+    </div>
+    <div class="body">
+      <p style="font-family:var(--serif);font-size:20px;line-height:1.4;margin:4px 0 16px">
+        Underlined phrases are doors.<br>The line tells you what kind.<span class="pin">1</span></p>
+      <div class="teach">
+        <div class="row"><span class="chip A">A</span><h6>Stated</h6></div>
+        <p>The text says it in words. <span class="ex">“…<a class="cx2 A">the prophecy
+        of Esaias, which saith</a>” — Matthew names Isaiah.</span> A solid line.<span class="pin">2</span></p>
+      </div>
+      <div class="teach">
+        <div class="row"><span class="chip B">B</span><h6>Textual, unstated</h6></div>
+        <p>The books share it without saying so. <span class="ex">Matthew, Mark and Luke
+        all tell <a class="cx2 B">the sower</a>.</span> A dotted line.</p>
+      </div>
+      <div class="teach">
+        <div class="row"><span class="chip C">C</span><h6>Tradition</h6></div>
+        <p>Outside the text — always shown hollow. <span class="ex">Peter’s
+        <a class="cx2 C">death in Rome</a> — the canon itself is silent.</span> A dashed line.</p>
+      </div>
+      <p style="font-size:12px;color:var(--p-muted);margin:2px 0 14px">A grade measures
+      how explicit a connection is — never whether it is true.</p>
+      <button class="btn walk">Open Matthew 13 →</button>
+      <p class="skipline">Skip — every chip re-explains itself when tapped<span class="pin">3</span></p>
+    </div>
+  </div></div>
+  <div class="notes"><ol>
+    <li><span class="pn">1</span><span><b>Teach the affordance, not the app.</b> One screen,
+      one idea, real examples set in the product’s own type. No ten-step tour — the reading
+      view is self-explanatory once the underline is understood.
+      <span class="prd">Grounded: first-run-only, replayable — nv-onboarding.ts (ruview)</span></span></li>
+    <li><span class="pn">2</span><span><b>Shape is the second channel.</b> Solid / dotted /
+      dashed survives color-blindness, dark paper, e-ink, and print. The colors stay —
+      they’re now confirmation, not the sole carrier.
+      <span class="prd">F4 · WCAG 1.4.1 use of color</span></span></li>
+    <li><span class="pn">3</span><span><b>Skippable, recoverable.</b> First-run only by
+      default; tapping any grade chip anywhere replays that grade’s single line. Help is
+      ambient, never a manual.
+      <span class="prd">Grounded: replayable via help — onboarding.js (ruview)</span></span></li>
+  </ol></div>
+</section>
+
+<!-- ================= P4 SEARCH ================= -->
+<section class="scene">
+  <div class="scene-head">
+    <p class="num">Proposal 04 · fixes F5, F7 · annotated still — live above</p>
+    <h2>Search — one box that understands three kinds of asking</h2>
+    <span class="proves">Routes, citations, or a jump</span><span class="proves">Never composed</span>
+    <p class="sub">Moment view and Ask-the-archive merge into the single <b>Search</b> tab —
+    the word every user already knows. The router classifies what you typed: a situation
+    opens doors, a question returns citations, a reference jumps straight to the page.
+    The user never has to know which tool they needed; both were retrieval all along.</p>
+  </div>
+  <div class="phone"><div class="screen">
+    <div class="appbar">
+      <span class="book">Search</span>
+      <span class="loc">Bounded to the text</span>
+    </div>
+    <div class="body door">
+      <p class="prompt">What is happening —<br>or what do you want to know?<span class="pin">1</span></p>
+      <div class="input">my mother is in the hospital</div>
+      <p class="routesonly">Search only opens doors. It never writes answers.<span class="pin">2</span></p>
+      <p class="modecap">Sounds like a hard day — places to stand<span class="pin">3</span></p>
+      <div class="dest">
+        <div class="ref"><span>Psalm 121 · whole psalm</span><span class="go">Walk →</span></div>
+        <p>“I will lift up mine eyes unto the hills, from whence cometh my help.”</p>
+        <p class="why">A song for the road, sung by pilgrims on a hard journey.</p>
+      </div>
+      <div class="dest">
+        <div class="ref"><span>Psalm 34:18</span><span class="go">Walk →</span></div>
+        <p>“The LORD is nigh unto them that are of a broken heart.”</p>
+        <p class="why">David’s psalm from a day he escaped by feigning madness.</p>
+      </div>
+      <p class="modecap">Also understood here</p>
+      <p style="font-size:12px;color:var(--p-muted);margin:0">
+        A question — <i>“who wrote Hebrews?”</i> — returns what the text says, with chapter
+        and verse. A reference — <i>“mt 14”</i> or <i>“john 3 16”</i> — jumps straight to the page.</p>
+    </div>
+    <div class="shelf">
+      <span class="ed">Ed 1</span>
+      <span class="nv">Books</span>
+      <span class="nv">Trail</span>
+      <span class="nv on">Search</span>
+      <span class="nv">Notes</span>
+    </div>
+  </div></div>
+  <div class="notes"><ol>
+    <li><span class="pn">1</span><span><b>One input, three honest outcomes.</b> Situation →
+      curator-set moment routes. Question → the archive’s cited quotations, including honest
+      silence. Reference → jump. The architecture already unifies them — both surfaces are
+      rvf-wasm retrieval over the same edition — so the split was only ever a UI burden.
+      <span class="prd">PRD §5 moment + ask · §11 doorway problem · F5</span></span></li>
+    <li><span class="pn">2</span><span><b>The promise stays printed on the door,</b>
+      verbatim from Design 01 — it now covers every mode with one sentence.
+      <span class="prd">PRD §6.2 no generated content</span></span></li>
+    <li><span class="pn">3</span><span><b>The section label does the acknowledging.</b>
+      “Sounds like a hard day — places to stand” is fixed curator copy attached to the
+      moment, not generated text — warmth within the constitution.
+      <span class="prd">PRD §7 no counseling — checked; copy is curated, static</span></span></li>
+  </ol></div>
+</section>
+
+<!-- ================= P5 EVENT VIEW ================= -->
+<section class="scene" style="border-bottom:none">
+  <div class="scene-head">
+    <p class="num">Proposal 05 · fixes F6 · annotated still — live above</p>
+    <h2>Event view — one witness at reading size, comparison on demand</h2>
+    <span class="proves">Anti-goal: harmonization — kept</span><span class="proves">Phone-first</span>
+    <p class="sub">Each witness gets the full page width at true reading size; tabs switch
+    between them. Tinted phrases mark alignment — tap one and the other witnesses’ wording
+    appears beneath, side by side only where the reader asked for it. Divergence keeps its
+    dashed amber flag. Side-by-side columns return on tablet and desktop, where they fit.</p>
+  </div>
+  <div class="phone"><div class="screen">
+    <div class="appbar"><span class="book">The Sower</span><span class="loc">Event · 3 witnesses</span></div>
+    <div class="tabs"><span class="on">Matthew</span><span>Mark</span><span>Luke</span><span class="pin">1</span></div>
+    <div class="body" style="padding-bottom:0">
+      <p class="scripture" style="font-size:15.5px">
+        <span class="v">3</span>And he spake many things unto them in parables, saying,
+        <span class="aligned2">Behold, a sower went forth to sow</span>;<span class="pin">2</span>
+        <span class="v">4</span>And when he sowed, some seeds fell by the way side, and the
+        fowls came and devoured them up…
+      </p>
+    </div>
+    <div class="cmp">
+      <p class="cap">The same moment, each voice<span class="pin">3</span></p>
+      <div class="row"><span class="who">Mark 4:3</span><p>“Hearken; Behold, there went out a sower to sow:”</p></div>
+      <div class="row"><span class="who">Luke 8:5</span><p>“A sower went out to sow his seed:”</p></div>
+    </div>
+    <div class="divergence"><span class="chip B">B</span><b>Mark alone</b> carries a fourth
+      seed parable — the seed growing secretly (Mark 4:26–29). Shown, graded, unresolved.</div>
+    <div class="shelf" style="margin-top:auto">
+      <span class="ed">Ed 1</span>
+      <span class="nv on">Books</span>
+      <span class="nv">Trail</span>
+      <span class="nv">Search</span>
+      <span class="nv">Notes</span>
+    </div>
+  </div></div>
+  <div class="notes"><ol>
+    <li><span class="pn">1</span><span><b>Tabs replace the peek column.</b> A 55%-opacity
+      sliver read as “disabled”; a tab reads as “also here.” Every witness is one tap away
+      and each gets the whole page — no witness is ever second-class.
+      <span class="prd">PRD §6.3 sources stay visible · F6</span></span></li>
+    <li><span class="pn">2</span><span><b>Alignment tint is the invitation.</b> The tinted
+      phrase is tappable like any door; comparison is progressive disclosure, not a
+      permanent three-column squint.
+      <span class="prd">Grounded: summary first, detail on interaction — ADR-053</span></span></li>
+    <li><span class="pn">3</span><span><b>Wording stays verbatim, differences stay visible.</b>
+      The comparison strip quotes each witness in full at readable size — harmonization
+      remains architecturally impossible, now also comfortably legible.
+      <span class="prd">PRD §5 differences preserved and flagged</span></span></li>
+  </ol></div>
+</section>
+
+<div class="hallway">
+  <p class="cap">Before building — the five-tester verdict, PRD §11’s own standard</p>
+  <h3>Three hallway tasks that decide whether these fixes worked</h3>
+  <ol>
+    <li><b>The lost-reader test.</b> “Start in Matthew 13, follow any two connections,
+      then get back to where you started.”
+      <span class="pass">Pass: returns without help, under 15 seconds, no wrong taps</span></li>
+    <li><b>The vocabulary test.</b> After two minutes of free reading: “what’s the
+      difference between this underline and that one?”
+      <span class="pass">Pass: explains A vs C in their own words</span></li>
+    <li><b>The search test.</b> “Find something for a friend whose father just died —
+      then find out who wrote Hebrews — then open John chapter 3.” Same input box.
+      <span class="pass">Pass: never asks “which search do I use?”</span></li>
+  </ol>
+</div>
+
+<footer class="colophon">
+  <p class="eyebrow">Colophon · grounding</p>
+  <p>Review of <b>Design 01</b> (<code>docs/03_design/wireframes.html</code>) against
+  <b>PRD — Walk the Word</b> (<code>docs/01_inital/PRD-living-scripture-graph.md</code>) and the
+  Ruv-stack architecture (<code>docs/02_architecture/ruv-stack-architecture.md</code>).
+  Principles grounded via ruvnet-brain in rUv’s real source: <b>progressive disclosure,
+  deliberate status color, orientation always visible</b> —
+  <code>ruview/docs/adr/ADR-053-ui-design-system.md</code> (Accepted; its dark control-panel
+  palette deliberately not borrowed — the phones stay paper); <b>first-run-only, replayable
+  onboarding with concrete “Try it now” CTAs that fire real navigation against the live
+  UI</b> — <code>ruview/dashboard/src/components/nv-onboarding.ts</code> and
+  <code>ruview/ui/utils/onboarding.js</code>; <b>a live demo embedded in the page itself</b> —
+  <code>ruview/ui/components/LiveDemoTab.js</code>. The tappable wireframe at the top of
+  this page follows those patterns. Every proposal was checked against the PRD’s
+  anti-requirements (§7): no accounts, no engagement mechanics, no composed content,
+  trail and notebook on-device only.</p>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var proto=document.getElementById('proto');
+  var HERE={'scr-teach':'First open','scr-read':'Matthew 13','scr-isaiah':'Isaiah 6',
+            'scr-event':'The Sower','scr-search':'Search','scr-john':'John 3',
+            'scr-psalm':'Psalm 121','scr-notes':'My notebook'};
+  var GRADES={A:'Grade A — Stated. The text says this connection in words (a quotation, a superscription, a named presence). A solid line.',
+              B:'Grade B — Textual, unstated. The books share it without saying so (parallel accounts, shared details). A dotted line.',
+              C:'Grade C — Tradition. From outside the text; the canon itself is silent. Always hollow, always dashed.'};
+  var trail=[];
+  var toastTimer=null;
+
+  function $(s,r){return (r||document).querySelector(s)}
+  function $$(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))}
+
+  window.show=function(id){
+    $$('.pscreen',proto).forEach(function(e){e.classList.toggle('cur',e.id===id)});
+    var tab=document.getElementById(id).getAttribute('data-tab')||'';
+    $$('.shelf .nv',proto).forEach(function(n){n.classList.toggle('on',n.getAttribute('data-tab')===tab)});
+    window.closeSheets();
+  };
+  window.closeSheets=function(){
+    $$('.sheet2',proto).forEach(function(s){s.classList.remove('open')});
+    $('#scrim').classList.remove('on');
+  };
+  window.openSheet=function(id){
+    window.closeSheets();
+    document.getElementById(id).classList.add('open');
+    $('#scrim').classList.add('on');
+    if(id==='sh-trail') renderTrail();
+  };
+  window.toast=function(msg){
+    var t=$('#toast');t.textContent=msg;t.classList.add('on');
+    clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('on')},3400);
+  };
+  window.gradeHelp=function(g){window.toast(GRADES[g])};
+  window.stocked=function(){window.toast('The demo stocks Matthew 13, Isaiah 6, John 3 and Psalm 121 — in the product, every book and chapter opens.')};
+
+  function step(title,ref,g,scr){
+    trail.push({title:title,ref:ref,g:g||'',scr:scr});
+    $$('.tcount',proto).forEach(function(e){e.textContent='· '+trail.length});
+  }
+  window.walkTo=function(scr,title,ref,g){step(title,ref,g,scr);window.show(scr)};
+  window.go=function(scr,name){step('→ '+name,'Opened via Books','',scr);window.show(scr)};
+  window.startReading=function(){
+    if(trail.length===0) step('Matthew 13','Started reading · the sower','','scr-read');
+    window.show('scr-read');
+  };
+  function renderTrail(){
+    var cur=$('.pscreen.cur',proto);
+    var html=trail.map(function(s){
+      return '<li><span class="dot '+s.g+'"></span>'
+        +'<span class="ret" onclick="show(\''+s.scr+'\')">Return</span>'
+        +'<h5>'+s.title+'</h5><span class="ref">'+s.ref+'</span></li>';
+    }).join('');
+    html+='<li><span class="dot here"></span><h5>'+(HERE[cur.id]||'Here')
+        +' — you are here</h5><span class="ref">Right now</span></li>';
+    $('#trailList').innerHTML=html;
+  }
+
+  /* event view */
+  var EV=[
+    {name:'Matthew',ref:'13:3–9',v:'3',
+     pre:'And he spake many things unto them in parables, saying, ',
+     al:'Behold, a sower went forth to sow',
+     post:'; And when he sowed, some seeds fell by the way side, and the fowls came and devoured them up…',
+     others:[['Mark 4:3','“Hearken; Behold, there went out a sower to sow:”'],
+             ['Luke 8:5','“A sower went out to sow his seed:”']]},
+    {name:'Mark',ref:'4:3–9',v:'3',
+     pre:'',al:'Hearken; Behold, there went out a sower to sow',
+     post:': And it came to pass, as he sowed, some fell by the way side, and the fowls of the air came and devoured it up…',
+     others:[['Mt 13:3','“Behold, a sower went forth to sow;”'],
+             ['Luke 8:5','“A sower went out to sow his seed:”']]},
+    {name:'Luke',ref:'8:5–8',v:'5',
+     pre:'',al:'A sower went out to sow his seed',
+     post:': and as he sowed, some fell by the way side; and it was trodden down, and the fowls of the air devoured it…',
+     others:[['Mt 13:3','“Behold, a sower went forth to sow;”'],
+             ['Mark 4:3','“Hearken; Behold, there went out a sower to sow:”']]}
+  ];
+  var evCur=0,cmpOpen=false;
+  window.evTab=function(i){evCur=i;cmpOpen=false;renderEv()};
+  window.toggleCmp=function(){cmpOpen=!cmpOpen;renderEv()};
+  function renderEv(){
+    $$('#ev-tabs span').forEach(function(t,i){t.classList.toggle('on',i===evCur)});
+    var w=EV[evCur];
+    $('#ev-loc').textContent=w.name+' '+w.ref;
+    $('#ev-text').innerHTML='<span class="v">'+w.v+'</span>'+w.pre
+      +'<span class="aligned2" onclick="toggleCmp()">'+w.al+'</span>'+w.post;
+    $('#ev-cmp').style.display=cmpOpen?'block':'none';
+    $('#ev-cmp-rows').innerHTML=w.others.map(function(o){
+      return '<div class="row"><span class="who">'+o[0]+'</span><p>'+o[1]+'</p></div>';
+    }).join('');
+  }
+  renderEv();
+
+  /* search */
+  var Q=['my mother is in the hospital','who wrote the letter to the Hebrews?','john 3 16'];
+  var RES_MOMENT='<p class="modecap">Sounds like a hard day — places to stand</p>'
+    +'<div class="dest"><div class="ref"><span>Psalm 121 · whole psalm</span>'
+    +'<span class="go" onclick="walkTo(\'scr-psalm\',\'Search → Psalm 121\',\'Walked · a route for a hard day\',\'\')">Walk →</span></div>'
+    +'<p>“I will lift up mine eyes unto the hills, from whence cometh my help.”</p>'
+    +'<p class="why">A song for the road, sung by pilgrims on a hard journey.</p></div>'
+    +'<div class="dest"><div class="ref"><span>Psalm 34:18</span>'
+    +'<span class="go" onclick="toast(\'The demo walks Psalm 121 — in the product every route opens.\')">Walk →</span></div>'
+    +'<p>“The LORD is nigh unto them that are of a broken heart.”</p>'
+    +'<p class="why">David’s psalm from a day he escaped by feigning madness.</p></div>';
+  var RES_Q='<div class="honest"><p>The text does not name its author.</p></div>'
+    +'<p class="modecap">What the text does say</p>'
+    +'<div class="cite"><div class="ref">Hebrews 13:23</div>'
+    +'<p>“Know ye that our brother Timothy is set at liberty; with whom, if he come shortly, I will see you.”</p></div>'
+    +'<div class="cite"><div class="ref">2 Peter 3:15–16</div>'
+    +'<p>“…even as our beloved brother Paul also according to the wisdom given unto him hath written unto you…”</p></div>'
+    +'<p class="openq"><span class="chip C" onclick="gradeHelp(\'C\')">C</span> Authorship proposals — Paul, Apollos, Barnabas — are tradition, not text. Open question, declared on the page.</p>';
+  window.doSearch=function(n){
+    $('#sInput').textContent=Q[n];
+    if(n===0){$('#sRes').innerHTML=RES_MOMENT}
+    else if(n===1){$('#sRes').innerHTML=RES_Q}
+    else{step('Search → John 3','Jumped by reference','','scr-john');window.show('scr-john')}
+  };
+})();
+</script>

@@ -1,0 +1,385 @@
+{
+  "edition": {
+    "number": 1,
+    "name": "Matthew 13 & the seed thread",
+    "published": "2026-07-15",
+    "translation": "KJV (public domain)",
+    "checksum": "sha256-2a7596932cd0686d4c13e3f235d04549ae1e962b0bda281d6dc10a58bd1af62c",
+    "corrections": "corrections@walktheword.example",
+    "changelog": [
+      "Edition 1 — initial slice: Matthew 13 (sower, mustard seed), the seed thread across six books, the Sower event with three witnesses, one moment, one honest question."
+    ],
+    "textStatus": "curator-unverified — structural integrity tested; verbatim diff against a canonical KJV source pending"
+  },
+  "books": [
+    {
+      "id": "psalms",
+      "name": "Psalms",
+      "order": 19,
+      "chaptersTotal": 150,
+      "partial": true,
+      "chapters": {
+        "34": {
+          "18": "The LORD is nigh unto them that are of a broken heart; and saveth such as be of a contrite spirit."
+        },
+        "121": {
+          "1": "I will lift up mine eyes unto the hills, from whence cometh my help.",
+          "2": "My help cometh from the LORD, which made heaven and earth.",
+          "3": "He will not suffer thy foot to be moved: he that keepeth thee will not slumber.",
+          "4": "Behold, he that keepeth Israel shall neither slumber nor sleep.",
+          "5": "The LORD is thy keeper: the LORD is thy shade upon thy right hand.",
+          "6": "The sun shall not smite thee by day, nor the moon by night.",
+          "7": "The LORD shall preserve thee from all evil: he shall preserve thy soul.",
+          "8": "The LORD shall preserve thy going out and thy coming in from this time forth, and even for evermore."
+        }
+      }
+    },
+    {
+      "id": "isaiah",
+      "name": "Isaiah",
+      "order": 23,
+      "chaptersTotal": 66,
+      "partial": true,
+      "chapters": {
+        "6": {
+          "8": "Also I heard the voice of the Lord, saying, Whom shall I send, and who will go for us? Then said I, Here am I; send me.",
+          "9": "And he said, Go, and tell this people, Hear ye indeed, but understand not; and see ye indeed, but perceive not.",
+          "10": "Make the heart of this people fat, and make their ears heavy, and shut their eyes; lest they see with their eyes, and hear with their ears, and understand with their heart, and convert, and be healed."
+        },
+        "41": {
+          "10": "Fear thou not; for I am with thee: be not dismayed; for I am thy God: I will strengthen thee; yea, I will help thee; yea, I will uphold thee with the right hand of my righteousness."
+        }
+      }
+    },
+    {
+      "id": "matthew",
+      "name": "Matthew",
+      "order": 40,
+      "chaptersTotal": 28,
+      "partial": true,
+      "chapters": {
+        "13": {
+          "1": "The same day went Jesus out of the house, and sat by the sea side.",
+          "2": "And great multitudes were gathered together unto him, so that he went into a ship, and sat; and the whole multitude stood on the shore.",
+          "3": "And he spake many things unto them in parables, saying, Behold, a sower went forth to sow;",
+          "4": "And when he sowed, some seeds fell by the way side, and the fowls came and devoured them up:",
+          "5": "Some fell upon stony places, where they had not much earth: and forthwith they sprung up, because they had no deepness of earth:",
+          "6": "And when the sun was up, they were scorched; and because they had no root, they withered away.",
+          "7": "And some fell among thorns; and the thorns sprung up, and choked them:",
+          "8": "But other fell into good ground, and brought forth fruit, some an hundredfold, some sixtyfold, some thirtyfold.",
+          "9": "Who hath ears to hear, let him hear.",
+          "10": "And the disciples came, and said unto him, Why speakest thou unto them in parables?",
+          "11": "He answered and said unto them, Because it is given unto you to know the mysteries of the kingdom of heaven, but to them it is not given.",
+          "12": "For whosoever hath, to him shall be given, and he shall have more abundance: but whosoever hath not, from him shall be taken away even that he hath.",
+          "13": "Therefore speak I to them in parables: because they seeing see not; and hearing they hear not, neither do they understand.",
+          "14": "And in them is fulfilled the prophecy of Esaias, which saith, By hearing ye shall hear, and shall not understand; and seeing ye shall see, and shall not perceive:",
+          "15": "For this people's heart is waxed gross, and their ears are dull of hearing, and their eyes they have closed; lest at any time they should see with their eyes, and hear with their ears, and should understand with their heart, and should be converted, and I should heal them.",
+          "16": "But blessed are your eyes, for they see: and your ears, for they hear.",
+          "17": "For verily I say unto you, That many prophets and righteous men have desired to see those things which ye see, and have not seen them; and to hear those things which ye hear, and have not heard them.",
+          "18": "Hear ye therefore the parable of the sower.",
+          "19": "When any one heareth the word of the kingdom, and understandeth it not, then cometh the wicked one, and catcheth away that which was sown in his heart. This is he which received seed by the way side.",
+          "20": "But he that received the seed into stony places, the same is he that heareth the word, and anon with joy receiveth it;",
+          "21": "Yet hath he not root in himself, but dureth for a while: for when tribulation or persecution ariseth because of the word, by and by he is offended.",
+          "22": "He also that received seed among the thorns is he that heareth the word; and the care of this world, and the deceitfulness of riches, choke the word, and he becometh unfruitful.",
+          "23": "But he that received seed into the good ground is he that heareth the word, and understandeth it; which also beareth fruit, and bringeth forth, some an hundredfold, some sixty, some thirty.",
+          "31": "Another parable put he forth unto them, saying, The kingdom of heaven is like to a grain of mustard seed, which a man took, and sowed in his field:",
+          "32": "Which indeed is the least of all seeds: but when it is grown, it is the greatest among herbs, and becometh a tree, so that the birds of the air come and lodge in the branches thereof."
+        }
+      }
+    },
+    {
+      "id": "mark",
+      "name": "Mark",
+      "order": 41,
+      "chaptersTotal": 16,
+      "partial": true,
+      "chapters": {
+        "4": {
+          "3": "Hearken; Behold, there went out a sower to sow:",
+          "4": "And it came to pass, as he sowed, some fell by the way side, and the fowls of the air came and devoured it up.",
+          "5": "And some fell on stony ground, where it had not much earth; and immediately it sprang up, because it had no depth of earth:",
+          "6": "But when the sun was up, it was scorched; and because it had no root, it withered away.",
+          "7": "And some fell among thorns, and the thorns grew up, and choked it, and it yielded no fruit.",
+          "8": "And other fell on good ground, and did yield fruit that sprang up and increased; and brought forth, some thirty, and some sixty, and some an hundred.",
+          "9": "And he said unto them, He that hath ears to hear, let him hear.",
+          "26": "And he said, So is the kingdom of God, as if a man should cast seed into the ground;",
+          "27": "And should sleep, and rise night and day, and the seed should spring and grow up, he knoweth not how.",
+          "28": "For the earth bringeth forth fruit of herself; first the blade, then the ear, after that the full corn in the ear.",
+          "29": "But when the fruit is brought forth, immediately he putteth in the sickle, because the harvest is come."
+        }
+      }
+    },
+    {
+      "id": "luke",
+      "name": "Luke",
+      "order": 42,
+      "chaptersTotal": 24,
+      "partial": true,
+      "chapters": {
+        "8": {
+          "5": "A sower went out to sow his seed: and as he sowed, some fell by the way side; and it was trodden down, and the fowls of the air devoured it.",
+          "6": "And some fell upon a rock; and as soon as it was sprung up, it withered away, because it lacked moisture.",
+          "7": "And some fell among thorns; and the thorns sprang up with it, and choked it.",
+          "8": "And other fell on good ground, and sprang up, and bare fruit an hundredfold. And when he had said these things, he cried, He that hath ears to hear, let him hear.",
+          "9": "And his disciples asked him, saying, What might this parable be?",
+          "10": "And he said, Unto you it is given to know the mysteries of the kingdom of God: but to others in parables; that seeing they might not see, and hearing they might not understand.",
+          "11": "Now the parable is this: The seed is the word of God."
+        }
+      }
+    },
+    {
+      "id": "john",
+      "name": "John",
+      "order": 43,
+      "chaptersTotal": 21,
+      "partial": true,
+      "chapters": {
+        "3": {
+          "14": "And as Moses lifted up the serpent in the wilderness, even so must the Son of man be lifted up:",
+          "15": "That whosoever believeth in him should not perish, but have eternal life.",
+          "16": "For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.",
+          "17": "For God sent not his Son into the world to condemn him; but that the world through him might be saved."
+        },
+        "12": {
+          "24": "Verily, verily, I say unto you, Except a corn of wheat fall into the ground and die, it abideth alone: but if it die, it bringeth forth much fruit."
+        }
+      }
+    },
+    {
+      "id": "galatians",
+      "name": "Galatians",
+      "order": 48,
+      "chaptersTotal": 6,
+      "partial": true,
+      "chapters": {
+        "6": {
+          "7": "Be not deceived; God is not mocked: for whatsoever a man soweth, that shall he also reap."
+        }
+      }
+    },
+    {
+      "id": "hebrews",
+      "name": "Hebrews",
+      "order": 58,
+      "chaptersTotal": 13,
+      "partial": true,
+      "chapters": {
+        "13": {
+          "23": "Know ye that our brother Timothy is set at liberty; with whom, if he come shortly, I will see you."
+        }
+      }
+    },
+    {
+      "id": "1peter",
+      "name": "1 Peter",
+      "order": 60,
+      "chaptersTotal": 5,
+      "partial": true,
+      "chapters": {
+        "1": {
+          "23": "Being born again, not of corruptible seed, but of incorruptible, by the word of God, which liveth and abideth for ever."
+        }
+      }
+    },
+    {
+      "id": "2peter",
+      "name": "2 Peter",
+      "order": 61,
+      "chaptersTotal": 3,
+      "partial": true,
+      "chapters": {
+        "3": {
+          "15": "And account that the longsuffering of our Lord is salvation; even as our beloved brother Paul also according to the wisdom given unto him hath written unto you;",
+          "16": "As also in all his epistles, speaking in them of these things; in which are some things hard to be understood, which they that are unlearned and unstable wrest, as they do also unto the other scriptures, unto their own destruction."
+        }
+      }
+    }
+  ],
+  "nodes": [
+    {
+      "id": "event:sower",
+      "type": "event",
+      "name": "The Sower",
+      "witnesses": [
+        {
+          "book": "matthew",
+          "ref": "matthew:13:3-9"
+        },
+        {
+          "book": "mark",
+          "ref": "mark:4:3-9"
+        },
+        {
+          "book": "luke",
+          "ref": "luke:8:5-8"
+        }
+      ],
+      "aligned": {
+        "matthew": "Behold, a sower went forth to sow",
+        "mark": "Hearken; Behold, there went out a sower to sow",
+        "luke": "A sower went out to sow his seed"
+      },
+      "divergence": {
+        "grade": "B",
+        "text": "Mark alone carries a fourth seed parable — the seed growing secretly.",
+        "ref": "mark:4:26-29"
+      },
+      "key": {
+        "grade": "A",
+        "ref": "luke:8:11",
+        "label": "Luke states the key",
+        "phrase": "The seed is the word of God"
+      }
+    },
+    {
+      "id": "thread:seed",
+      "type": "thread",
+      "name": "Seed",
+      "stops": [
+        {
+          "ref": "matthew:13:3",
+          "grade": "A",
+          "label": "The sower"
+        },
+        {
+          "ref": "matthew:13:31",
+          "grade": "A",
+          "label": "The mustard seed"
+        },
+        {
+          "ref": "mark:4:26",
+          "grade": "B",
+          "label": "The seed growing secretly",
+          "note": "Mark only"
+        },
+        {
+          "ref": "john:12:24",
+          "grade": "A",
+          "label": "The corn of wheat"
+        },
+        {
+          "ref": "galatians:6:7",
+          "grade": "A",
+          "label": "Sowing and reaping"
+        },
+        {
+          "ref": "1peter:1:23",
+          "grade": "A",
+          "label": "Incorruptible seed"
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "mt13-14-quotes-isa6-9",
+      "from": "matthew:13:14",
+      "to": "isaiah:6:9",
+      "rel": "quotes",
+      "grade": "A",
+      "warrant": "matthew:13:14",
+      "claim": "Matthew 13:14 quotes Isaiah 6:9",
+      "anchor": {
+        "ref": "matthew:13:14",
+        "phrase": "the prophecy of Esaias, which saith"
+      }
+    },
+    {
+      "id": "mt13-3-witnesses-sower",
+      "from": "matthew:13:3",
+      "to": "event:sower",
+      "rel": "witnesses",
+      "grade": "B",
+      "warrant": "mark:4:3",
+      "claim": "Matthew, Mark and Luke each tell the sower",
+      "anchor": {
+        "ref": "matthew:13:3",
+        "phrase": "a sower went forth to sow"
+      }
+    },
+    {
+      "id": "mt13-31-thread-seed",
+      "from": "matthew:13:31",
+      "to": "thread:seed",
+      "rel": "thread",
+      "grade": "A",
+      "warrant": "matthew:13:31",
+      "claim": "One image — seed — followed across the canon",
+      "anchor": {
+        "ref": "matthew:13:31",
+        "phrase": "a grain of mustard seed"
+      }
+    },
+    {
+      "id": "lk8-11-key-sower",
+      "from": "luke:8:11",
+      "to": "event:sower",
+      "rel": "states",
+      "grade": "A",
+      "warrant": "luke:8:11",
+      "claim": "Luke states the key of the sower parable",
+      "anchor": {
+        "ref": "luke:8:11",
+        "phrase": "The seed is the word of God"
+      }
+    }
+  ],
+  "moments": [
+    {
+      "id": "hard-day",
+      "label": "Sounds like a hard day — places to stand",
+      "keywords": [
+        "hospital",
+        "sick",
+        "illness",
+        "ill",
+        "mother",
+        "father",
+        "afraid",
+        "fear",
+        "scared",
+        "alone",
+        "grief",
+        "grieving",
+        "died",
+        "death",
+        "funeral",
+        "worried",
+        "worry",
+        "anxious",
+        "crisis"
+      ],
+      "routes": [
+        {
+          "ref": "psalms:121",
+          "why": "A song for the road, sung by pilgrims on a hard journey."
+        },
+        {
+          "ref": "psalms:34:18",
+          "why": "David's psalm from a day he escaped by feigning madness."
+        },
+        {
+          "ref": "isaiah:41:10",
+          "why": "Spoken to a people in exile, afraid for those far away."
+        }
+      ]
+    }
+  ],
+  "questions": [
+    {
+      "id": "hebrews-author",
+      "keywords": [
+        "wrote hebrews",
+        "hebrews author",
+        "author of hebrews",
+        "who wrote the letter to the hebrews"
+      ],
+      "honest": "The text does not name its author.",
+      "cites": [
+        "hebrews:13:23",
+        "2peter:3:15-16"
+      ],
+      "open": "Authorship proposals — Paul, Apollos, Barnabas — are tradition and scholarship, not text. Open question, declared on the page."
+    }
+  ]
+}
