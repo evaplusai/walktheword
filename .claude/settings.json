@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__ruflo__*",
+      "mcp__agentdb__*",
+      "mcp__ruvector__*",
+      "mcp__plugin_ruvnet-brain_ruvnet-brain__*",
+      "Bash(npx ruflo *)",
+      "Bash(npx agentdb *)",
+      "Bash(npx ruvector *)",
+      "Bash(npm install*)",
+      "Bash(npm run *)",
+      "Bash(npm test*)",
+      "Bash(node *)",
+      "Bash(git status*)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push*)",
+      "Bash(git branch*)",
+      "Bash(git show *)",
+      "Bash(ls *)",
+      "Bash(pwd)",
+      "Bash(which *)",
+      "Bash(mkdir *)",
+      "Bash(find *)"
+    ],
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(curl * | bash)",
+      "Bash(wget * | sh)",
+      "Bash(eval *)",
+      "Bash(git push --force*)",
+      "Read(./.env)",
+      "Read(./.env.*)"
+    ]
+  },
+  "enabledMcpjsonServers": ["ruflo", "agentdb", "ruvector"]
+}
