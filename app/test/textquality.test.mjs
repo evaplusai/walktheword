@@ -84,6 +84,39 @@ test('regressions for judge-found both-fragments-common splits (rounds 2–3)', 
   assert.match(kjv.isaiah['6']['6'], /a live coal/, 'legitimate pair must never be joined');
 });
 
+test('cycle-4 judge regressions: section headings do not leak into verse ends', () => {
+  const kjv = Object.fromEntries(edition.books.map(b => [b.id, b.chapters]));
+  const web = Object.fromEntries(overlay.books.map(b => [b.id, b.chapters]));
+  assert.match(kjv.exodus['7']['13'], /as the LORD had said\.$/);
+  assert.doesNotMatch(kjv.genesis['29']['30'], /Reuben, Simeon, Levi, and Judah$/);
+  assert.doesNotMatch(kjv['1kings']['16']['28'], /Jezebel$/);
+  assert.match(kjv.proverbs['22']['16'], /come to want\.$/);
+  assert.match(kjv.exodus['1']['3'], /^Issachar, Zebulun, and Benjamin,$/, 'name-list VERSE preserved');
+  assert.match(kjv.exodus['29']['24'], /before the LORD\.$/, '"LORD." not eaten by acrostic rule');
+  assert.match(kjv.psalms['119']['1'], /^ALEPH\. Blessed/, 'KJV inline stanza marker kept as printed');
+  assert.match(web.psalms['119']['160'], /endures forever\.$/, 'WEB stanza heading stripped');
+  assert.doesNotMatch(web.psalms['119']['16'], /GIMEL$/);
+});
+
+test('every verse ends with punctuation, or is on the receipted audit list', () => {
+  const repairs = JSON.parse(readFileSync(new URL('../../docs/00_bible/extracted/autorepairs.json', import.meta.url), 'utf8'));
+  const shippedMaps = { kjv: Object.fromEntries(edition.books.map(b => [b.id, b.chapters])), web: Object.fromEntries(overlay.books.map(b => [b.id, b.chapters])) };
+  for (const tr of ['kjv', 'web']) {
+    const allowed = new Set(repairs[`${tr}-unterminated-verses`]);
+    const bad = [];
+    for (const [b, chs] of Object.entries(shippedMaps[tr])) {
+      for (const [c, vs] of Object.entries(chs)) {
+        for (const [v, t] of Object.entries(vs)) {
+          if (t && !/[.,;:!?'")’”—-]$/.test(t) && !allowed.has(`${b} ${c}:${v}`)) {
+            bad.push(`${tr} ${b} ${c}:${v}`);
+          }
+        }
+      }
+    }
+    assert.deepEqual(bad, [], `${tr}: unreceipted unterminated verses`);
+  }
+});
+
 test('no residual Hebrew acrostic markers, [Online] fragments, or double spaces', () => {
   const all = JSON.stringify(edition.books) + JSON.stringify(overlay.books);
   assert.doesNotMatch(all, /[֐-׿]/, 'Hebrew characters');

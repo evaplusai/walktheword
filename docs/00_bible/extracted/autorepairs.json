@@ -9752,6 +9752,34 @@
     }
   ],
   "kjv-omitted-verses": [],
+  "kjv-acrostic-strips": [],
+  "kjv-glued-heading-strips": [
+    {
+      "ref": "proverbs 22:16",
+      "removed": "Thirty Sayings of the Wise"
+    },
+    {
+      "ref": "proverbs 31:9",
+      "removed": "The Virtues of a Noble Woman"
+    },
+    {
+      "ref": "lamentations 3:18",
+      "removed": "The Prophet's Hope"
+    },
+    {
+      "ref": "lamentations 3:36",
+      "removed": "God's Justice"
+    }
+  ],
+  "kjv-unterminated-verses": [
+    "genesis 23:17",
+    "1chronicles 21:11",
+    "2chronicles 30:18",
+    "psalms 96:12",
+    "psalms 98:8",
+    "romans 11:7",
+    "colossians 1:21"
+  ],
   "web": [
     {
       "ref": "genesis 1:22",
@@ -18524,5 +18552,158 @@
     "acts 8:37",
     "acts 15:34",
     "acts 24:7"
+  ],
+  "web-acrostic-strips": [
+    {
+      "ref": "psalms 119:1",
+      "from": "hose ways are blameless, who walk according to Yahweh's law.",
+      "to": "ess, who walk according to Yahweh's law."
+    },
+    {
+      "ref": "psalms 119:16",
+      "from": " myself in your statutes. I will not forget your word. GIMEL",
+      "to": "r statutes. I will not forget your word."
+    },
+    {
+      "ref": "psalms 119:40",
+      "from": "long for your precepts! Revive me in your righteousness. WAW",
+      "to": "ecepts! Revive me in your righteousness."
+    },
+    {
+      "ref": "psalms 119:48",
+      "from": "ments, which I love. I will meditate on your statutes. ZAYIN",
+      "to": " love. I will meditate on your statutes."
+    },
+    {
+      "ref": "psalms 119:88",
+      "from": "g kindness, so I will obey the statutes of your mouth. LAMED",
+      "to": " I will obey the statutes of your mouth."
+    },
+    {
+      "ref": "psalms 119:96",
+      "from": "imit to all perfection, but your commands are boundless. MEM",
+      "to": "ection, but your commands are boundless."
+    },
+    {
+      "ref": "psalms 119:104",
+      "from": ", I get understanding; therefore I hate every false way. NUN",
+      "to": "nding; therefore I hate every false way."
+    },
+    {
+      "ref": "psalms 119:112",
+      "from": "rt to perform your statutes forever, even to the end. SAMEKH",
+      "to": " your statutes forever, even to the end."
+    },
+    {
+      "ref": "psalms 119:120",
+      "from": "rembles for fear of you. I am afraid of your judgments. AYIN",
+      "to": "r of you. I am afraid of your judgments."
+    },
+    {
+      "ref": "psalms 119:152",
+      "from": "m your testimonies, that you have founded them forever. RESH",
+      "to": "ies, that you have founded them forever."
+    },
+    {
+      "ref": "psalms 119:160",
+      "from": "e of your righteous ordinances endures forever. SIN AND SHIN",
+      "to": "eous ordinances endures forever. SIN AND"
+    },
+    {
+      "ref": "psalms 119:168",
+      "from": "ts and your testimonies, for all my ways are before you. TAV",
+      "to": "imonies, for all my ways are before you."
+    }
+  ],
+  "web-glued-heading-strips": [
+    {
+      "ref": "psalms 119:160",
+      "removed": "SIN AND"
+    },
+    {
+      "ref": "proverbs 22:16",
+      "removed": "Thirty Sayings of the Wise"
+    },
+    {
+      "ref": "proverbs 31:9",
+      "removed": "The Virtues of a Noble Woman"
+    },
+    {
+      "ref": "lamentations 3:18",
+      "removed": "The Prophet's Hope"
+    },
+    {
+      "ref": "lamentations 3:36",
+      "removed": "God's Justice"
+    }
+  ],
+  "web-unterminated-verses": [
+    "genesis 5:13",
+    "genesis 7:8",
+    "genesis 23:17",
+    "genesis 31:48",
+    "numbers 7:24",
+    "numbers 7:30",
+    "numbers 7:36",
+    "numbers 7:42",
+    "numbers 7:48",
+    "numbers 7:54",
+    "numbers 7:60",
+    "numbers 7:66",
+    "numbers 7:72",
+    "numbers 7:78",
+    "numbers 31:42",
+    "deuteronomy 29:15",
+    "joshua 1:14",
+    "joshua 9:1",
+    "judges 9:16",
+    "2samuel 1:17",
+    "1kings 8:41",
+    "1kings 8:50",
+    "1kings 9:10",
+    "1kings 11:15",
+    "1kings 11:31",
+    "2chronicles 6:12",
+    "2chronicles 30:18",
+    "job 31:5",
+    "job 31:17",
+    "psalms 96:12",
+    "psalms 119:8",
+    "psalms 119:24",
+    "psalms 119:32",
+    "psalms 119:56",
+    "psalms 119:64",
+    "psalms 119:80",
+    "psalms 119:128",
+    "psalms 119:144",
+    "isaiah 48:1",
+    "zechariah 5:6",
+    "matthew 11:2",
+    "matthew 11:16",
+    "matthew 16:11",
+    "luke 1:69",
+    "luke 2:22",
+    "luke 4:1",
+    "luke 23:50",
+    "john 4:1",
+    "acts 1:24",
+    "acts 4:27",
+    "romans 2:13",
+    "romans 8:20",
+    "1corinthians 7:10",
+    "galatians 2:7",
+    "ephesians 1:9",
+    "ephesians 1:19",
+    "philippians 3:8",
+    "2thessalonians 2:1",
+    "2timothy 1:3",
+    "2timothy 1:17",
+    "hebrews 7:18",
+    "hebrews 7:20",
+    "hebrews 11:37",
+    "2peter 2:7",
+    "1john 1:1",
+    "revelation 1:10",
+    "revelation 4:2"
   ]
 }

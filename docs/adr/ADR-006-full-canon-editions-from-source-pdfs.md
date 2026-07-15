@@ -23,11 +23,19 @@
    because they passed three judged cycles, but flagged **curator-review-pending**: the
    claims, moment backstories, and question copy are curator-editable metadata, not
    scripture. Both edition files embed the same graph; anchors bind to KJV wording.
-4. **Extraction quality gates carry over** (they are properties of the tool, not the
-   data): fragment-safe heading strip, recorded normalizations, explicit repairs,
-   corpus-lexicon + single-letter + bigram split detection, fail-loud residue scan,
-   canonical structure checks (66 books; every chapter's verses contiguous from 1;
-   per-book chapter counts must equal the canonical count).
+4. **Extraction quality gates**, hardened by the cycle-4 judge round: recorded
+   normalizations; explicit repairs; corpus-lexicon + single-letter + bigram split
+   detection with fail-loud residue scan; canonical structure checks (66 books; verses
+   contiguous from 1; per-book chapter counts equal the canonical count); **heading
+   stripping in three receipted layers** — plain Title-Case lines, punctuation-bearing
+   Title-Case lines that do not END in punctuation (genealogy verse-lines do, and stay),
+   and a verse-level pass for headings pypdf glues inside a text line — every dropped
+   line receipted in `docs/00_bible/extracted/headings-dropped-*.json` and every glued
+   tail in `autorepairs.json`; acrostic stanza titles limited to the transliteration
+   word-list (a bare all-caps rule would eat "LORD." lines); WEB's Psalm-119 stanza
+   markers stripped and receipted (the KJV source prints its markers inline in verse
+   text — kept verbatim); a terminal-punctuation audit receipts every verse that ends
+   unpunctuated for curator review.
 5. **Nothing preloaded** (ADR-005 upheld): start screen → explicit translation choice →
    the full book list. A navigation audit accompanies this ADR (ADR-007).
 

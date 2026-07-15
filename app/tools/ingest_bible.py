@@ -103,16 +103,36 @@ def normalize(text):
     text = re.sub(r"([A-Za-z])' (t|s|d|ll|re|ve|m)\b", r"\1'\2", text)
     return re.sub(r'\s+',' ',text).strip()
 
+ACROSTIC = r'(?:ALEPH|BETH|GIMEL|DALETH|HE|WAW|VAU|ZAYIN|ZAIN|HETH|CHETH|TETH|YODH|JOD|YOD|KAPH|CAPH|LAMEDH|LAMED|MEM|NUN|SAMEKH|SAMECH|AYIN|AIN|PE|TZADDI|TSADHE|TSADE|QOPH|KOPH|RESH|SHIN|SCHIN|SIN|TAU|TAV|TAW)'
+
+
+SMALL_WORDS = {'a','an','and','the','of','in','on','to','for','by','with','at','from',
+               'into','over','under','or','nor','but','is','are','vs','his','her','as'}
+
 def looks_heading(s):
     s = s.strip()
-    if not s or any(c in s for c in ';:?!,'):
+    if not s or s[0].isdigit():
         return False
-    if re.fullmatch(r'[A-Z]{2,6}\.?', s):   # acrostic titles: ALEPH. BETH. …
-        return True
-    if '.' in s:
+    if re.fullmatch(ACROSTIC + r'\.?', s):  # acrostic stanza titles ONLY — a bare
+        return True                          # all-caps rule would eat 'LORD.' lines
+    if not any(c in s for c in '.;:?!,'):
+        w = s.split()
+        return 1 <= len(w) <= 9 and s[0].isupper()
+    # Title-Case headings WITH internal punctuation ("The First Plague: Blood",
+    # "Ahab Reigns in Israel, Marries Jezebel") — round-1 judge finding: these leaked
+    # into verse text. A heading is Title Case throughout (small words excepted), short,
+    # and — crucially — does NOT end with punctuation: genealogy/city-list VERSE lines
+    # ("Issachar, Zebulun, and Benjamin,") are also Title Case but always end with
+    # list/sentence punctuation, so they stay (they are scripture).
+    if s[-1] in '.,;:!?':
         return False
-    w = s.split()
-    return 1 <= len(w) <= 9 and s[0].isupper() and not s[0].isdigit()
+    words = [w.strip(".,;:?!()'\"") for w in s.split()]
+    content = [w for w in words if w and w[0].isalpha()]
+    if not (2 <= len(content) <= 10):
+        return False
+    lowers = [w for w in content if w[0].islower() and w.lower() not in SMALL_WORDS]
+    caps = [w for w in content if w[0].isupper()]
+    return not lowers and len(caps) >= 2
 
 def next_starts_verse_or_ref(lines, i):
     j = i+1
@@ -123,14 +143,16 @@ def next_starts_verse_or_ref(lines, i):
         return bool(re.match(r'^\d{1,3}\b', s)) or bool(re.match(r'^\([^)]*\d+:', s))
     return False
 
-def parse_chunk(lines, start, end, label):
+def parse_chunk(lines, start, end, label, dropped_headings):
     body = []
     i = start+1
     while i < end:
         s = lines[i].strip()
         if s and not s.startswith('@@PAGE') and '[Online]' not in s:
             clean = CROSSREF_RE.sub(' ', s).strip()
-            if not (looks_heading(clean) and next_starts_verse_or_ref(lines, i)):
+            if looks_heading(clean) and next_starts_verse_or_ref(lines, i):
+                dropped_headings.append({'at': label, 'line': clean})  # audit receipt
+            else:
                 body.append(CROSSREF_RE.sub(' ', s))
         i += 1
     tokens = ' '.join(body).split()
@@ -168,7 +190,7 @@ def ingest_translation(cache_path, tag):
         if m and confirmed(idx):
             positions.append((idx, m.group(1), int(m.group(2))))
             by_header[(m.group(1), int(m.group(2)))] = len(positions)-1
-    out, problems = {}, []
+    out, problems, dropped_headings = {}, [], []
     for bid, name, header, order, total in BOOKS:
         chapters = {}
         for ch in range(1, total+1):
@@ -177,7 +199,7 @@ def ingest_translation(cache_path, tag):
                 problems.append(f'{tag}: header "{header} {ch}" not found'); continue
             start = positions[pos][0]
             end = positions[pos+1][0] if pos+1 < len(positions) else len(lines)
-            chapters[str(ch)] = parse_chunk(lines, start, end, f'{tag} {header} {ch}')
+            chapters[str(ch)] = parse_chunk(lines, start, end, f'{tag} {header} {ch}', dropped_headings)
         if len(chapters) != total:
             problems.append(f'{tag}: {name} has {len(chapters)}/{total} chapters')
         out[bid] = chapters
@@ -187,7 +209,48 @@ def ingest_translation(cache_path, tag):
                  for v,t in vs.items() if t == '']
     if omissions:
         print(f'  {tag}: {len(omissions)} verse(s) omitted by this translation: {", ".join(omissions[:8])}{"…" if len(omissions)>8 else ""}')
-    return out, omissions
+    print(f'  {tag}: {len(dropped_headings)} editorial heading lines stripped (receipted)')
+    return out, omissions, dropped_headings
+
+# Transliterated Hebrew acrostic stanza titles (Psalm 119). The KJV source prints them
+# INLINE at each stanza's opening verse — kept verbatim. The WEB source prints them as
+# standalone stanza headings which pypdf glues onto the END of the previous line —
+# extraction artifacts, stripped and receipted.
+# Headings glued INSIDE an extracted line ("...come to want. Thirty Sayings of the
+# Wise") escape line-level rules — a verse-level post-pass strips a Title-Case tail
+# that follows the final sentence punctuation and itself ends unpunctuated.
+GLUE_RE = re.compile(r"([.!?:;][\"']?) ([A-Z][A-Za-z'’]*(?: [A-Za-z'’]+){1,9})$")
+
+def strip_glued_headings(data, tag):
+    stripped = []
+    for b, chs in data.items():
+        for c, vs in chs.items():
+            for v, t in vs.items():
+                m = GLUE_RE.search(t)
+                if not m:
+                    continue
+                words = m.group(2).split()
+                if any(w[0].islower() and w.lower() not in SMALL_WORDS for w in words):
+                    continue  # ordinary scripture tail ("Thus saith the LORD, Choose thee")
+                if sum(1 for w in words if w[0].isupper()) < 2:
+                    continue
+                vs[v] = t[:m.end(1)]
+                stripped.append({'ref': f'{b} {c}:{v}', 'removed': m.group(2)})
+    print(f'  {tag}: {len(stripped)} glued heading tails stripped (receipted)')
+    return stripped
+
+def strip_web_acrostics(data, tag):
+    if tag != 'web':
+        return []
+    stripped = []
+    ps119 = data['psalms']['119']
+    for v, t in list(ps119.items()):
+        fixed = re.sub(rf'\s*\b{ACROSTIC}\b\.?\s*$', '', t)   # glued to verse end
+        fixed = re.sub(rf'^\s*{ACROSTIC}\b\.?\s*', '', fixed)  # leading heading residue
+        if fixed != t:
+            stripped.append({'ref': f'psalms 119:{v}', 'from': t[-60:] if len(t) > 60 else t, 'to': fixed[-40:]})
+            ps119[v] = fixed.strip()
+    return stripped
 
 def build_lexicons(cache_path):
     text = open(cache_path,encoding='utf-8').read()
@@ -261,10 +324,23 @@ def main():
         if not os.path.exists(cache):
             extract_pages(pdf, cache)
         lex, bigrams = build_lexicons(cache)
-        data, omissions = ingest_translation(cache, tag)
+        data, omissions, dropped_headings = ingest_translation(cache, tag)
+        acrostics = strip_web_acrostics(data, tag)
+        glued = strip_glued_headings(data, tag)
         joins = apply_repairs_and_scan(data, tag, lex, bigrams)
         autorepairs[tag] = joins
         autorepairs[f'{tag}-omitted-verses'] = omissions
+        autorepairs[f'{tag}-acrostic-strips'] = acrostics
+        autorepairs[f'{tag}-glued-heading-strips'] = glued
+        json.dump(dropped_headings, open(f'docs/00_bible/extracted/headings-dropped-{tag}.json','w'),
+                  indent=1, ensure_ascii=False)
+        # terminal-punctuation audit: a verse ending without punctuation is the signature
+        # of a glued heading — receipt every case for curator review
+        unterminated = [f'{b} {c}:{v}' for b,chs in data.items() for c,vs in chs.items()
+                        for v,t in vs.items() if t and not re.search(r"[.,;:!?'\")—-]$", t)]
+        autorepairs[f'{tag}-unterminated-verses'] = unterminated
+        if unterminated:
+            print(f'  {tag}: {len(unterminated)} verse(s) end without punctuation (audit): {unterminated[:6]}')
         total_verses = sum(len(vs) for chs in data.values() for vs in chs.values())
         total_chapters = sum(len(chs) for chs in data.values())
         print(f'  {tag}: 66 books, {total_chapters} chapters, {total_verses} verses')

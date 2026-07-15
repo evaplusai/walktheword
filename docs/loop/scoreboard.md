@@ -76,6 +76,19 @@ missing-ref honesty; psalm superscriptions; notes export; 13 new adversarial tes
 - ✅ Cleared by adversarial trace: trail is sessionStorage-only, no double-count on
   delegated listeners, no harmonization, aligned phrases verbatim in all three witnesses.
 
+## Cycle 4 — round 1 verdict: 67 FAIL → fix round → regrading
+Judge round 1 (independent whole-canon re-derivation: structure/provenance/checksums/48-verse
+sample/receipted-joins all VERIFIED clean) found: (high) ~31 section headings per edition
+glued into verse ends (punctuation-bearing titles evaded the heading rule); (high) async
+hashchange broke the teach flow and fresh-device deep links; (med) Ps-119 stanza-marker
+leakage; (med) blank app on invalid deep link; (med) crash on bogus event/thread hash;
+(low) double WEB fetch, stale copy. ALL FIXED: three-layer receipted heading strip
+(+ the fix round itself caught and fixed two of its own overreaches: name-list verses
+eaten, "LORD." eaten by the bare all-caps rule — both restored, regression-tested);
+echo-compare hashchange guard; teach has its own hash; deep links queue through teaching;
+invalid links fall back honestly; in-flight WEB fetch memo; terminal-punctuation audit
+receipts. Tests 38/38.
+
 ## Cycle 4 — ADR-006/007: full-canon rebuild + navigation — gates T/V ✅, judging
 Curator directive: erase everything generated, rebuild per-edition from the source PDFs
 only, fully loaded, fix navigation. Done: all prior data deleted; two complete editions
