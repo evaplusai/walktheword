@@ -37,9 +37,11 @@ function splitSuspects(verseMaps, lex, bigrams) {
             continue;
           }
           // both-fragments-common class ("fat her" -> father) via exported corpus
-          // bigram counts — same thresholds as the ingest-side scan
-          const bc = bigrams[`${a} ${z}`];
-          if (bc !== undefined && a.length >= 2 && z.length >= 2
+          // bigram counts. A pair ABSENT from the export counts as 0 — identical to the
+          // ingest-side semantics — so any hand-edit to scripture data that introduces a
+          // new suspicious pair fails loudly (editions are immutable; that's a feature).
+          const bc = bigrams[`${a} ${z}`] ?? 0;
+          if (a.length >= 2 && z.length >= 2
               && joined >= 50 && bc <= 2 && Math.floor(joined / Math.max(1, bc)) >= 100) {
             suspects.push(`${bookId} ${ch}:${v} "${toks[i]} ${toks[i + 1]}" (bigram)`);
           }

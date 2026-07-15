@@ -34,10 +34,12 @@ legitimate phrases ("a live coal", "pass over", "up on") preserved.
 - Judge round 3 (85): 2 residuals ("Fat her", "be cause") — both-fragments-common
   class; judge-suggested bigram test implemented.
 - Judge round 4 (96): text fully clean; remaining findings were in this report itself,
-**63 verses identical · 3 corrected** (1 superscription convention + 2 genuine misquotes: John 3:17, 2 Peter 3:16). All 13 chapters ship whole (399 verses), counts matching canonical KJV exactly.
   fixed in this revision.
+- Judge round 5 (97): PASS.
 
 ## Verse-by-verse: previous from-memory text vs curator source
+
+**63 verses identical · 3 corrected** (1 superscription convention + 2 genuine misquotes: John 3:17, 2 Peter 3:16). All 13 chapters ship whole (399 verses), counts matching canonical KJV exactly.
 
 ### psalms 121:1 — CORRECTED
 - memory: I will lift up mine eyes unto the hills, from whence cometh my help.
