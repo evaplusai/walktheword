@@ -172,6 +172,7 @@ function syncHash() {
 // our own programmatic writes (round-1 judge finding: it killed the teach screen).
 // Instead: ignore any hash that already matches the current screen's canonical hash.
 window.addEventListener('hashchange', () => {
+  if (!data) return; // pre-boot race: boot re-reads location.hash after the edition loads
   if (location.hash === hashFor(screen)) return;
   const s = parseHash(location.hash);
   // parseable-but-invalid (e.g. #/read/nosuchbook/9): keep the current screen and

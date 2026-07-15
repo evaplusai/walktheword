@@ -76,6 +76,15 @@ missing-ref honesty; psalm superscriptions; notes export; 13 new adversarial tes
 - ✅ Cleared by adversarial trace: trail is sessionStorage-only, no double-count on
   delegated listeners, no harmonization, aligned phrases verbatim in all three witnesses.
 
+## Cycle 4 verdict — COMPLETE ✅ (round 3: **97 PASS**, path 67 → 91 → 97)
+Full canon verified: judge's independent PDF re-extraction confirms both editions
+word-perfect (structure 66/1189/31102, provenance, checksums, cross-canon samples,
+6,080 heading receipts swept with zero scripture-in-receipts, zero glued headings,
+routing traces clean incl. teach-then-deep-link and URL-never-lies). Round-3 low
+residuals: pre-boot hashchange race (guarded post-verdict — one line, self-recovering
+before the fix) and the acknowledged audit blindness to mid-list truncations (root cause
+removed; class covered by regressions + judge's endswith method, documented in ADR-006).
+
 ## Cycle 4 — round 2 verdict: 91 FAIL → fix round 2 → regrading
 Judge round 2: all round-1 defects verified fixed (leak list gone word-by-word, routing
 traces pass live incl. teach-then-deep-link) — but the heading fix REGRESSED 3 WEB verses:
