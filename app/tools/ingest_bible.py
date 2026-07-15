@@ -57,6 +57,63 @@ REPAIRS = {
     ('web', '2peter', '3', '15'): [('t o him', 'to him')],
 }
 
+def _lexicon(full_txt_path):
+    """Word frequencies from the ENTIRE source PDF text (~1500 pages), so rare-in-slice
+    words like 'revelation' or 'circumcised' are still recognized as words when a split
+    fragments them. Splits also occur in the full text, but at negligible frequency
+    relative to real word counts."""
+    from collections import Counter
+    lex = Counter()
+    text = open(full_txt_path, encoding='utf-8').read()
+    lex.update(w.strip(".,;:?!()'\"[]").lower() for w in text.split())
+    return lex
+
+def lexicon_split_scan(data, lex):
+    """Detect split words by corpus statistics, per translation: an adjacent token pair
+    is a suspect when the JOINED form is a common word of the FULL source corpus
+    (>=3 uses) while a fragment is not (<=1 use). Catches 'ca me', 'mot her', 'Chris t',
+    'a lso', 'revelati on' — multi-letter fragments and punctuation included."""
+    strip = ".,;:?!()'\""
+    suspects = []
+    for b, chs in data.items():
+        for c, vs in chs.items():
+            for v, t in vs.items():
+                toks = t.split()
+                for i in range(len(toks) - 1):
+                    a = toks[i].strip(strip).lower()
+                    z = toks[i + 1].strip(strip).lower()
+                    if not (a.isalpha() and z.isalpha()):
+                        continue
+                    if toks[i].strip(strip) and toks[i][-1] in strip:
+                        continue  # fragment can't end with punctuation and continue a word
+                    joined = lex[a + z]
+                    # fragment = rare RELATIVE to the joined word (split fragments recur
+                    # corpus-wide — 'circ' appears twice because the SAME split repeats —
+                    # so an absolute threshold misses them)
+                    frag = max(2, joined // 10)
+                    if joined >= 3 and (lex[a] <= frag or lex[z] <= frag):
+                        suspects.append((b, c, v, toks[i], toks[i + 1], a + z))
+    return suspects
+
+def lexicon_split_scan_and_join(data, translation, lex):
+    """Iteratively join detected splits (removing the interior space, keeping case and
+    punctuation) until the scan is clean. Every join is logged and written to the
+    autorepairs.json receipt — nothing is fixed silently."""
+    joins = []
+    for _ in range(5):
+        suspects = lexicon_split_scan(data, lex)
+        if not suspects:
+            break
+        for b, c, v, t1, t2, joined in suspects:
+            broken = f'{t1} {t2}'
+            if broken in data[b][c][v]:
+                data[b][c][v] = data[b][c][v].replace(broken, t1 + t2)
+                joins.append({'ref': f'{b} {c}:{v}', 'from': broken, 'to': t1 + t2})
+    print(f'{translation}: {len(joins)} lexicon-detected split-word joins')
+    for j in joins:
+        print(f"  {j['ref']}: \"{j['from']}\" -> \"{j['to']}\"")
+    return joins
+
 def apply_repairs(data, translation):
     count = 0
     for (tr, b, c, v), fixes in REPAIRS.items():
@@ -146,15 +203,24 @@ def ingest(txt_path, translation):
 if __name__ == '__main__':
     cache_dir = sys.argv[1]  # dir containing kjv_full.txt / web_full.txt
     os.makedirs('docs/00_bible/extracted', exist_ok=True)
+    all_autorepairs = {}
     for tr in ('kjv', 'web'):
-        data = ingest(os.path.join(cache_dir, f'{tr}_full.txt'), tr.upper())
+        full_txt = os.path.join(cache_dir, f'{tr}_full.txt')
+        lex = _lexicon(full_txt)
+        data = ingest(full_txt, tr.upper())
         data = apply_repairs(data, tr)
-        # post-repair artifact scan: any residual standalone lowercase letter fails loudly
-        for b, chs in data.items():
-            for c, vs in chs.items():
-                for v, t in vs.items():
-                    if re.search(r'(?:^|\s)[b-z](?= [a-z])', t):
-                        sys.exit(f'FATAL: residual split-word artifact in {tr} {b} {c}:{v}: {t}')
+        joins = lexicon_split_scan_and_join(data, tr, lex)
+        all_autorepairs[tr] = joins
+        # final fail-loud pass: after joining, a re-scan must find nothing
+        residual = lexicon_split_scan(data, lex)
+        if residual:
+            sys.exit(f'FATAL: residual split-word artifacts in {tr}: {residual[:5]}')
         with open(f'docs/00_bible/extracted/{tr}-edition1.json', 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
-    print('extracted -> docs/00_bible/extracted/')
+        # export the corpus lexicon (count >= 2) so the TEST SUITE can run the same
+        # split-word scan against shipped data forever — corruption can't pass green
+        with open(f'docs/00_bible/extracted/lexicon-{tr}.json', 'w', encoding='utf-8') as f:
+            json.dump({w: n for w, n in lex.items() if n >= 2 and w.isalpha()}, f, ensure_ascii=False)
+    with open('docs/00_bible/extracted/autorepairs.json', 'w', encoding='utf-8') as f:
+        json.dump(all_autorepairs, f, indent=2, ensure_ascii=False)
+    print('extracted -> docs/00_bible/extracted/ (+ autorepairs.json, lexicon-*.json receipts)')

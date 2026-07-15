@@ -1,0 +1,111 @@
+{
+  "kjv": [
+    {
+      "ref": "matthew 13:25",
+      "from": "ca me",
+      "to": "came"
+    },
+    {
+      "ref": "matthew 13:55",
+      "from": "mot her",
+      "to": "mother"
+    },
+    {
+      "ref": "mark 4:18",
+      "from": "amo ng",
+      "to": "among"
+    },
+    {
+      "ref": "mark 4:24",
+      "from": "he ar:",
+      "to": "hear:"
+    },
+    {
+      "ref": "john 3:22",
+      "from": "discip les",
+      "to": "disciples"
+    },
+    {
+      "ref": "john 12:9",
+      "from": "Je sus'",
+      "to": "Jesus'"
+    },
+    {
+      "ref": "john 12:36",
+      "from": "li ght,",
+      "to": "light,"
+    },
+    {
+      "ref": "1peter 1:11",
+      "from": "Chris t,",
+      "to": "Christ,"
+    },
+    {
+      "ref": "1peter 1:13",
+      "from": "revelati on",
+      "to": "revelation"
+    },
+    {
+      "ref": "2peter 3:11",
+      "from": "godli ness,",
+      "to": "godliness,"
+    }
+  ],
+  "web": [
+    {
+      "ref": "isaiah 6:9",
+      "from": "inde ed,",
+      "to": "indeed,"
+    },
+    {
+      "ref": "isaiah 41:14",
+      "from": "Ya hweh,",
+      "to": "Yahweh,"
+    },
+    {
+      "ref": "isaiah 41:23",
+      "from": "kn ow",
+      "to": "know"
+    },
+    {
+      "ref": "matthew 13:25",
+      "from": "a lso",
+      "to": "also"
+    },
+    {
+      "ref": "matthew 13:42",
+      "from": "fi re.",
+      "to": "fire."
+    },
+    {
+      "ref": "mark 4:32",
+      "from": "grea ter",
+      "to": "greater"
+    },
+    {
+      "ref": "luke 8:13",
+      "from": "wi th",
+      "to": "with"
+    },
+    {
+      "ref": "john 12:42",
+      "from": "hi m,",
+      "to": "him,"
+    },
+    {
+      "ref": "galatians 6:12",
+      "from": "circ umcised;",
+      "to": "circumcised;"
+    },
+    {
+      "ref": "1peter 1:11",
+      "from": "sufferi ngs",
+      "to": "sufferings"
+    },
+    {
+      "ref": "1peter 1:16",
+      "from": "wri tten,",
+      "to": "written,"
+    }
+  ]
+}

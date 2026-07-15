@@ -76,6 +76,14 @@ missing-ref honesty; psalm superscriptions; notes export; 13 new adversarial tes
 - ✅ Cleared by adversarial trace: trail is sessionStorage-only, no double-count on
   delegated listeners, no harmonization, aligned phrases verbatim in all three witnesses.
 
+## Cycle 2 — round 1 verdict: 71 FAIL → fix round → regrading
+Independent judge re-extracted all 798 verses: extraction fidelity confirmed EXCEPT
+18 residual split-word artifacts ("ca me", "Chris t,", "Ya hweh") that the naive
+single-letter scan missed. Fix: corpus-lexicon split detection (join is a corpus word,
+fragment is not; ratio threshold), 37 total recorded repairs, lexicons exported, and the
+SAME scan now runs in the test suite against shipped data (34/34 green) — corruption can
+never pass green again.
+
 ## Cycle 2 — text verification (curator sources) — gates T/V ✅, judging
 Curator provided canonical sources (`docs/00_bible/bible_{kjv,web}.pdf`). All from-memory
 scripture replaced via `app/tools/ingest_bible.py`: 13 whole chapters, 399 verses, counts
