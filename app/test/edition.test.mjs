@@ -5,10 +5,11 @@ import { readFileSync } from 'node:fs';
 import {
   validateEdition, getPassage, getVerse, edgesForVerse, walkEdge,
   parseRefQuery, classifyQuery, editionChecksum, GRADES,
-  formatRef, missingRefExplanation, edgeWarrants, edgeById
+  formatRef, missingRefExplanation, edgeWarrants, edgeById, applyTranslation
 } from '../lib/graph.mjs';
 
 const data = JSON.parse(readFileSync(new URL('../data/edition-1.json', import.meta.url), 'utf8'));
+const overlay = JSON.parse(readFileSync(new URL('../data/web-overlay-1.json', import.meta.url), 'utf8'));
 
 test('edition validates: every edge graded, warranted, anchored verbatim; all refs resolve', () => {
   const errors = validateEdition(data);
@@ -172,6 +173,16 @@ test('missing refs get data-derived honesty, no canon-existence claims', () => {
   assert.match(missingRefExplanation(data, 'matthew:13:999'), /verse 999 is not on its page here\. Verses 1–58 are/);
   assert.match(missingRefExplanation(data, 'matthew:27'), /not in this edition slice yet/);
   assert.match(missingRefExplanation(data, 'matthew:99'), /has 28 chapters — there is no chapter 99/);
+});
+
+test('translation layer (ADR-005): WEB swaps text, keeps the graph unchanged', () => {
+  const web = applyTranslation(data, overlay.books, overlay.translation);
+  assert.notEqual(getVerse(web, 'matthew', 13, 3), getVerse(data, 'matthew', 13, 3), 'text differs');
+  assert.match(getVerse(web, 'john', 3, 16), /whoever believes/, 'WEB wording');
+  assert.deepEqual(web.edges, data.edges, 'graph unchanged');
+  assert.equal(getPassage(web, 'psalms:121').verses.length, 8, 'refs resolve in WEB');
+  assert.equal(classifyQuery(web, 'john 3 16').kind, 'ref', 'search works over WEB');
+  assert.equal(data.edition.translation, 'KJV (public domain)', 'original untouched');
 });
 
 test('psalm superscriptions ship inside verse 1, exactly as the source prints them', () => {

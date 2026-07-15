@@ -76,6 +76,13 @@ missing-ref honesty; psalm superscriptions; notes export; 13 new adversarial tes
 - ✅ Cleared by adversarial trace: trail is sessionStorage-only, no double-count on
   delegated listeners, no harmonization, aligned phrases verbatim in all three witnesses.
 
+## Cycle 3 — ADR-005: start screen & translation choice — gates T/V ✅, judging
+Curator feedback: Matthew 13 was preloaded (a wireframe example promoted by accident).
+Fix: start screen — explicit translation choice (KJV / WEB, both from curator sources,
+WEB wired in as a display layer over the unchanged graph) → the loaded books/chapters,
+honestly captioned ("1 of 28 chapters in this slice", no walls of disabled cells) → the
+reader opens any page. Resume returns only to a place the reader chose. 37/37 tests.
+
 ## Cycle 2 verdict — COMPLETE ✅ (round 5: **97 PASS**)
 **71 → 88 → 85 → 96 → 97.** Scripture text verified by independent 798-verse PDF
 re-extraction: verbatim modulo exactly 40 recorded, individually verified repairs; zero

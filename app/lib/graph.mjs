@@ -287,6 +287,19 @@ export function validateEdition(data) {
   return errors;
 }
 
+// ---------- translations (ADR-005 §3) ----------
+
+// A translation is a display layer over the unchanged graph (PRD §7): same books,
+// same edges, same grades — only the verse text swaps.
+export function applyTranslation(edition, overlayBooks, translationLabel) {
+  const clone = JSON.parse(JSON.stringify(edition));
+  for (const book of clone.books) {
+    if (overlayBooks[book.id]) book.chapters = overlayBooks[book.id];
+  }
+  clone.edition.translation = translationLabel;
+  return clone;
+}
+
 // ---------- checksum (ADR-001 §3) ----------
 
 function stableStringify(value) {
