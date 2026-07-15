@@ -174,8 +174,9 @@ function syncHash() {
 window.addEventListener('hashchange', () => {
   if (location.hash === hashFor(screen)) return;
   const s = parseHash(location.hash);
-  if (s) showScreen(s, { fromHash: true });
-  else syncHash(); // unparseable hash: restore the canonical one
+  // parseable-but-invalid (e.g. #/read/nosuchbook/9): keep the current screen and
+  // restore its canonical hash so the URL never lies about what is rendered
+  if (!s || !showScreen(s, { fromHash: true })) syncHash();
 });
 
 // ---------- screens ----------
@@ -749,7 +750,7 @@ async function boot() {
     showScreen({ type: 'teach' });
     return;
   }
-  if (linked && showScreen(linked, { fromHash: true, fallbackToStart: true })) return;
+  if (linked) { showScreen(linked, { fromHash: true, fallbackToStart: true }); return; }
   const last = lastContinue();
   // No preloaded content (ADR-005): resume only a place the reader chose; else choose.
   showScreen(translation && last

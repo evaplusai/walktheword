@@ -121,10 +121,12 @@ def looks_heading(s):
     # Title-Case headings WITH internal punctuation ("The First Plague: Blood",
     # "Ahab Reigns in Israel, Marries Jezebel") — round-1 judge finding: these leaked
     # into verse text. A heading is Title Case throughout (small words excepted), short,
-    # and — crucially — does NOT end with punctuation: genealogy/city-list VERSE lines
-    # ("Issachar, Zebulun, and Benjamin,") are also Title Case but always end with
-    # list/sentence punctuation, so they stay (they are scripture).
-    if s[-1] in '.,;:!?':
+    # and — crucially — does NOT end with punctuation OR a closing quote:
+    # genealogy/city-list VERSE lines ("Issachar, Zebulun, and Benjamin,") end with
+    # list/sentence punctuation, and quoted-speech verse lines ("...THE KING OF THE
+    # JEWS.”") end with a quote mark (round-2 judge finding: missing the quote check
+    # truncated 3 WEB verses) — both stay: they are scripture.
+    if s[-1] in '.,;:!?"\'’”':
         return False
     words = [w.strip(".,;:?!()'\"") for w in s.split()]
     content = [w for w in words if w and w[0].isalpha()]

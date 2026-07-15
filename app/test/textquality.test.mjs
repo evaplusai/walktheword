@@ -98,6 +98,13 @@ test('cycle-4 judge regressions: section headings do not leak into verse ends', 
   assert.doesNotMatch(web.psalms['119']['16'], /GIMEL$/);
 });
 
+test('round-2 judge regressions: quoted-speech verse lines are never dropped as headings', () => {
+  const web = Object.fromEntries(overlay.books.map(b => [b.id, b.chapters]));
+  assert.match(web.matthew['16']['11'], /the Pharisees and Sadducees\."$/);
+  assert.match(web.matthew['27']['37'], /THE KING OF THE JEWS\."$/);
+  assert.match(web.revelation['1']['11'], /and to Laodicea\."$/);
+});
+
 test('every verse ends with punctuation, or is on the receipted audit list', () => {
   const repairs = JSON.parse(readFileSync(new URL('../../docs/00_bible/extracted/autorepairs.json', import.meta.url), 'utf8'));
   const shippedMaps = { kjv: Object.fromEntries(edition.books.map(b => [b.id, b.chapters])), web: Object.fromEntries(overlay.books.map(b => [b.id, b.chapters])) };

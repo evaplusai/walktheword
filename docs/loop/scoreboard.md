@@ -76,6 +76,15 @@ missing-ref honesty; psalm superscriptions; notes export; 13 new adversarial tes
 - ✅ Cleared by adversarial trace: trail is sessionStorage-only, no double-count on
   delegated listeners, no harmonization, aligned phrases verbatim in all three witnesses.
 
+## Cycle 4 — round 2 verdict: 91 FAIL → fix round 2 → regrading
+Judge round 2: all round-1 defects verified fixed (leak list gone word-by-word, routing
+traces pass live incl. teach-then-deep-link) — but the heading fix REGRESSED 3 WEB verses:
+lines ending in a closing quote ("…THE KING OF THE JEWS.”") were dropped as headings,
+truncating Matthew 16:11, 27:37, Revelation 1:11. Fixed: closing quotes join the
+ends-with-punctuation exemption; all 3 verses restored word-perfect and regression-tested;
+invalid-link double-render and lying-URL nits fixed; receipt counts corrected
+(3040 KJV / 3040 WEB dropped-heading receipts).
+
 ## Cycle 4 — round 1 verdict: 67 FAIL → fix round → regrading
 Judge round 1 (independent whole-canon re-derivation: structure/provenance/checksums/48-verse
 sample/receipted-joins all VERIFIED clean) found: (high) ~31 section headings per edition
