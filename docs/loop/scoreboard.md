@@ -76,6 +76,16 @@ missing-ref honesty; psalm superscriptions; notes export; 13 new adversarial tes
 - ✅ Cleared by adversarial trace: trail is sessionStorage-only, no double-count on
   delegated listeners, no harmonization, aligned phrases verbatim in all three witnesses.
 
+## Cycle 2 — round 2 verdict: 88 FAIL → fix round 2 → regrading
+Judge round 2: all 18 round-1 artifacts verified repaired, no false-positive joins — but
+ONE residual survived (WEB Isa 41:9 "corner s,"): the corpus lexicon counted standalone
+"s" as a common word because the full PDF text is itself polluted with split artifacts.
+Fix: contraction-normalize the corpus before building the lexicon; treat any standalone
+letter except a/I/O as always-a-fragment; export FULL-count lexicons so the test scan is
+byte-identical to the ingest scan; honest wording in the test header ("statistical net,
+not a proof — the authoritative receipt is the judge's independent re-extraction diff").
+22 lexicon joins + 16 explicit repairs; 34/34 tests green.
+
 ## Cycle 2 — round 1 verdict: 71 FAIL → fix round → regrading
 Independent judge re-extracted all 798 verses: extraction fidelity confirmed EXCEPT
 18 residual split-word artifacts ("ca me", "Chris t,", "Ya hweh") that the naive

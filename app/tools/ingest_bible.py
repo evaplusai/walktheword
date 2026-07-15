@@ -60,11 +60,16 @@ REPAIRS = {
 def _lexicon(full_txt_path):
     """Word frequencies from the ENTIRE source PDF text (~1500 pages), so rare-in-slice
     words like 'revelation' or 'circumcised' are still recognized as words when a split
-    fragments them. Splits also occur in the full text, but at negligible frequency
-    relative to real word counts."""
+    fragments them. The corpus gets the SAME contraction/apostrophe normalization as
+    verse text first — otherwise curly-apostrophe possessives tokenize as word + 's',
+    inflating lex['s'] into the thousands and blinding the scan to splits like
+    'corner s' (found by the round-2 judge). Splits also occur in the full text, but at
+    negligible frequency relative to real word counts."""
     from collections import Counter
-    lex = Counter()
     text = open(full_txt_path, encoding='utf-8').read()
+    text = text.replace('’', "'").replace('‘', "'")
+    text = re.sub(r"([A-Za-z])' (t|s|d|ll|re|ve|m)\b", r"\1'\2", text)
+    lex = Counter()
     lex.update(w.strip(".,;:?!()'\"[]").lower() for w in text.split())
     return lex
 
@@ -89,9 +94,14 @@ def lexicon_split_scan(data, lex):
                     joined = lex[a + z]
                     # fragment = rare RELATIVE to the joined word (split fragments recur
                     # corpus-wide — 'circ' appears twice because the SAME split repeats —
-                    # so an absolute threshold misses them)
+                    # so an absolute threshold misses them). Single letters are special:
+                    # the corpus itself is polluted with split fragments ('corner s',
+                    # 'wa s' — lex['s']=124, all artifacts), so any standalone letter
+                    # except the legitimate a/I/O is ALWAYS a fragment.
                     frag = max(2, joined // 10)
-                    if joined >= 3 and (lex[a] <= frag or lex[z] <= frag):
+                    a_frag = lex[a] <= frag or (len(a) == 1 and a not in ('a', 'i', 'o'))
+                    z_frag = lex[z] <= frag or (len(z) == 1 and z not in ('a', 'i', 'o'))
+                    if joined >= 3 and (a_frag or z_frag):
                         suspects.append((b, c, v, toks[i], toks[i + 1], a + z))
     return suspects
 
@@ -217,10 +227,10 @@ if __name__ == '__main__':
             sys.exit(f'FATAL: residual split-word artifacts in {tr}: {residual[:5]}')
         with open(f'docs/00_bible/extracted/{tr}-edition1.json', 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
-        # export the corpus lexicon (count >= 2) so the TEST SUITE can run the same
-        # split-word scan against shipped data forever — corruption can't pass green
+        # export the FULL corpus lexicon (all counts, alpha words) so the test suite runs
+        # the IDENTICAL scan against shipped data — same counts, same thresholds
         with open(f'docs/00_bible/extracted/lexicon-{tr}.json', 'w', encoding='utf-8') as f:
-            json.dump({w: n for w, n in lex.items() if n >= 2 and w.isalpha()}, f, ensure_ascii=False)
+            json.dump({w: n for w, n in lex.items() if w.isalpha()}, f, ensure_ascii=False)
     with open('docs/00_bible/extracted/autorepairs.json', 'w', encoding='utf-8') as f:
         json.dump(all_autorepairs, f, indent=2, ensure_ascii=False)
     print('extracted -> docs/00_bible/extracted/ (+ autorepairs.json, lexicon-*.json receipts)')
