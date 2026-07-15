@@ -3,7 +3,7 @@
 import {
   getBook, getPassage, nodeById, edgeById, walkEdge, classifyQuery,
   validateEdition, editionChecksum, formatRef, missingRefExplanation,
-  edgeWarrants, parseRef, applyTranslation
+  edgeWarrants, parseRef
 } from './lib/graph.mjs';
 import { escapeHtml, chapterHTML } from './lib/render.mjs';
 
@@ -26,23 +26,33 @@ const store = {
   }
 };
 
-let edition = null;   // the verified KJV artifact (the graph's substrate)
-let overlay = null;    // WEB display layer
-let data = null;       // active dataset (edition, or edition with WEB text applied)
+const editions = { kjv: null, web: null }; // full Edition-2 artifacts (ADR-006), web lazy
+let data = null;       // the ACTIVE edition
 let translation = store.read('wtw.translation', null); // 'kjv' | 'web' | null = not chosen
 let screen = { type: 'start' };                         // current screen state
 let returnTo = null;                                    // {label, screen}
 let trail = store.read('wtw.trail', [], sessionStorage);
 
-// ADR-005 §3: a translation is a display layer over the unchanged graph.
-function setTranslation(tr) {
-  if (tr === 'web' && !overlay) { toast('The WEB layer failed to load — reading the KJV artifact.'); tr = 'kjv'; }
+// ADR-006/007: two complete editions; KJV loads at boot (graph substrate + book lists),
+// WEB is fetched on first selection and cached for the session.
+async function setTranslation(tr) {
+  if (tr === 'web' && !editions.web) {
+    toast('Loading the WEB edition…');
+    try {
+      const res = await fetch('./data/edition-2-web.json');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      editions.web = await res.json();
+    } catch (err) {
+      toast(`The WEB edition failed to load (${err.message}) — reading KJV.`);
+      tr = 'kjv';
+    }
+  }
   translation = tr;
   store.write('wtw.translation', tr);
-  data = tr === 'web' ? applyTranslation(edition, overlay.books, overlay.translation) : edition;
+  data = editions[tr];
 }
 
-// Short label of the ACTIVE translation — cards must never mislabel WEB text as KJV.
+// Short label of the ACTIVE edition — cards must never mislabel one translation as another.
 function trLabel() { return translation === 'web' ? 'WEB' : 'KJV'; }
 
 // Most recently read position — by timestamp, not key order (a re-read book keeps its
@@ -127,8 +137,44 @@ function pushStep(title, ref, grade, toScreen) {
   updateTrailCount();
 }
 
+// ---------- URL routing (ADR-007): every screen has a hash; back/forward work ----------
+let applyingHash = false;
+function hashFor(s) {
+  if (s.type === 'reading') return `#/read/${s.book}/${s.chapter}${s.land ? '/' + s.land : ''}`;
+  if (s.type === 'event') return `#/event/${s.node.replace('event:', '')}`;
+  if (s.type === 'thread') return `#/thread/${s.node.replace('thread:', '')}`;
+  if (s.type === 'search') return '#/search';
+  if (s.type === 'notes') return '#/notes';
+  return '#/start';
+}
+function parseHash(h) {
+  const p = (h || '').replace(/^#\/?/, '').split('/');
+  if (p[0] === 'read' && p[1] && p[2]) {
+    return { type: 'reading', book: p[1], chapter: Number(p[2]), land: p[3] ? Number(p[3]) : null };
+  }
+  if (p[0] === 'event' && p[1]) return { type: 'event', node: 'event:' + p[1] };
+  if (p[0] === 'thread' && p[1]) return { type: 'thread', node: 'thread:' + p[1] };
+  if (p[0] === 'search') return { type: 'search' };
+  if (p[0] === 'notes') return { type: 'notes' };
+  if (p[0] === 'start') return { type: 'start' };
+  return null;
+}
+function syncHash() {
+  const h = hashFor(screen);
+  if (location.hash !== h) {
+    applyingHash = true;
+    location.hash = h;
+    applyingHash = false;
+  }
+}
+window.addEventListener('hashchange', () => {
+  if (applyingHash) return;
+  const s = parseHash(location.hash);
+  if (s) showScreen(s, { fromHash: true });
+});
+
 // ---------- screens ----------
-function showScreen(s) {
+function showScreen(s, opts = {}) {
   // Guard before mutating state: never point the app at a screen that can't render.
   if (s.type === 'reading') {
     const book = getBook(data, s.book);
@@ -139,6 +185,7 @@ function showScreen(s) {
   }
   screen = s;
   closeSheets();
+  if (!opts.fromHash) syncHash();
   if (s.type === 'reading') return renderReading(s.book, s.chapter, s.land ?? null);
   if (s.type === 'event') return renderEvent(s.node, s.tab ?? 0, s.compare ?? false);
   if (s.type === 'thread') return renderThread(s.node);
@@ -187,40 +234,50 @@ function renderTeach() {
   $('#skipBtn').onclick = start;
 }
 
-// -- start screen (ADR-005): what this edition carries; the reader chooses everything.
+// -- start screen (ADR-005/006/007): the whole canon; the reader chooses everything.
+// Accordion: 66 books, a tapped book unfolds its chapters — same grammar as Books sheet.
 function renderStart() {
-  setBar('Walk the Word', `Edition ${data ? data.edition.number : 1} · choose where to begin`);
+  const base = editions.kjv; // book list is identical in both editions
+  setBar('Walk the Word', `Edition ${base.edition.number} · choose where to begin`);
   setShelf('books');
   renderReturnChip();
-  const included = book => Object.keys(book.chapters).map(Number).filter(Number.isFinite).sort((a, b) => a - b);
-  const bookRow = book => `
+  const expand = screen.expand || null;
+  const bookRow = book => {
+    const open = book.id === expand;
+    return `
     <div class="startbook">
-      <div class="row"><h6>${escapeHtml(book.name)}</h6>
-        <span class="quietcap">${included(book).length} of ${book.chaptersTotal} chapter${book.chaptersTotal > 1 ? 's' : ''} in this slice</span></div>
-      <div class="bgrid">${included(book).map(c =>
-        `<button class="bk" data-chapter="${book.id}:${c}">${c}</button>`).join('')}</div>
+      <button class="bk bookbtn ${open ? 'on' : ''}" data-book="${book.id}">${escapeHtml(book.name)}
+        <span class="quietcap">· ${book.chaptersTotal} ch</span></button>
+      ${open ? `<div class="bgrid" style="margin-top:7px">${Array.from({ length: book.chaptersTotal }, (_, i) =>
+        `<button class="bk" data-chapter="${book.id}:${i + 1}">${i + 1}</button>`).join('')}</div>` : ''}
     </div>`;
-  const ot = data.books.filter(b => b.order < 40).sort((a, b) => a.order - b.order);
-  const nt = data.books.filter(b => b.order >= 40).sort((a, b) => a.order - b.order);
+  };
+  const ot = base.books.filter(b => b.order < 40).sort((a, b) => a.order - b.order);
+  const nt = base.books.filter(b => b.order >= 40).sort((a, b) => a.order - b.order);
   $('#view').innerHTML = `
     <p class="bigprompt">Choose your translation,<br>then open any page.</p>
     <div class="trrow">
       <button class="trcard ${translation === 'kjv' ? 'on' : ''}" data-tr="kjv">
         <b>KJV</b><span>King James Version · public domain · carries the connection doors</span></button>
-      ${overlay ? `<button class="trcard ${translation === 'web' ? 'on' : ''}" data-tr="web">
-        <b>WEB</b><span>World English Bible · public domain · display layer over the same map</span></button>`
-      : '<p class="quiet" style="flex:1;align-self:center">WEB layer unavailable this session — the KJV edition reads fully.</p>'}
+      <button class="trcard ${translation === 'web' ? 'on' : ''}" data-tr="web">
+        <b>WEB</b><span>World English Bible · public domain · same map, its own complete text</span></button>
     </div>
     ${translation ? `
-      <p class="seccap">Old Testament</p>${ot.map(bookRow).join('')}
-      <p class="seccap">New Testament</p>${nt.map(bookRow).join('')}
-      <p class="quiet" style="margin-top:14px">Edition ${data.edition.number} is one deep slice, complete
-      in itself. Later editions grow the map — the text never changes.</p>`
-    : '<p class="quiet">Pick a translation to see what this edition carries.</p>'}`;
-  $$('#view [data-tr]').forEach(el => el.onclick = () => {
-    setTranslation(el.dataset.tr);
+      <p class="seccap">Old Testament · 39 books</p><div class="bookcols">${ot.map(bookRow).join('')}</div>
+      <p class="seccap">New Testament · 27 books</p><div class="bookcols">${nt.map(bookRow).join('')}</div>
+      <p class="quiet" style="margin-top:14px">Edition ${base.edition.number}: the whole canon —
+      66 books, 1,189 chapters — extracted from the curator's source. The graded map grows
+      edition by edition; the text never changes.</p>`
+    : '<p class="quiet">Pick a translation to open the books.</p>'}`;
+  $$('#view [data-tr]').forEach(el => el.onclick = async () => {
+    await setTranslation(el.dataset.tr);
     renderStart();
     $(`#view [data-tr="${translation}"]`)?.focus(); // keep keyboard focus on the chosen card
+  });
+  $$('#view [data-book]').forEach(el => el.onclick = () => {
+    screen = { type: 'start', expand: el.dataset.book === expand ? null : el.dataset.book };
+    renderStart();
+    $(`#view [data-book="${screen.expand}"]`)?.focus();
   });
   $$('#view [data-chapter]').forEach(el => el.onclick = () => {
     const [book, chapter] = el.dataset.chapter.split(':');
@@ -232,18 +289,17 @@ function renderStart() {
 function renderReading(bookId, chapter, land = null) {
   // ADR-005 §1: power paths that bypass the start screen adopt KJV, persist, announce.
   if (!translation) {
-    setTranslation('kjv');
-    toast('Reading the KJV — the edition’s substrate. Switch to WEB anytime in Books.');
+    setTranslation('kjv'); // KJV is always loaded — resolves synchronously
+    toast('Reading the KJV edition. Switch to WEB anytime in Books.');
   }
   const book = getBook(data, bookId);
   setBar(`${escapeHtml(book.name)}<span class="caret">⌄</span>`, `Ch ${chapter}`);
   setShelf('books');
   renderReturnChip();
   $('#view').innerHTML = `<p class="scripture">${chapterHTML(data, bookId, chapter, land)}</p>` +
-    (translation === 'web' ? `<p class="quiet" style="margin-top:18px">WEB is a display layer over the
-      same map (PRD §7). Edition 1's connection doors are anchored in the KJV wording —
-      switch to KJV in Books to walk them.</p>` : '') +
-    (book.partial ? `<p class="quiet" style="margin-top:18px">Edition 1 slice — ${escapeHtml(book.name)} grows in later editions. The scripture text itself never changes; only the map around it.</p>` : '');
+    (translation === 'web' ? `<p class="quiet" style="margin-top:18px">The connection doors are
+      anchored in the KJV wording (this edition's map is shared) — switch to KJV in Books
+      to walk them. The WEB text itself is complete.</p>` : '');
   saveContinue(bookId, chapter, land);
   if (land) $('.land')?.scrollIntoView({ block: 'center' });
   else $('#view').scrollTop = 0;
@@ -516,11 +572,10 @@ function openBooks(expanded = screen.book || 'matthew') {
   const exp = getBook(data, expanded);
   let chaptersHTML = '';
   if (exp) {
-    // Only what's loaded — an honest caption replaces a wall of dead cells (ADR-005).
     const included = Object.keys(exp.chapters).map(Number).filter(Number.isFinite).sort((a, b) => a - b);
     const cells = included.map(c =>
       `<button class="bk ${screen.type === 'reading' && screen.book === exp.id && screen.chapter === c ? 'on' : ''}" data-chapter="${exp.id}:${c}">${c}</button>`);
-    chaptersHTML = `<p class="seccap">${escapeHtml(exp.name)} · ${included.length} of ${exp.chaptersTotal} chapters in this slice</p><div class="bgrid">${cells.join('')}</div>`;
+    chaptersHTML = `<p class="seccap">${escapeHtml(exp.name)} · ${included.length} chapters</p><div class="bgrid">${cells.join('')}</div>`;
   }
   $('#sh-books').innerHTML = `
     <div class="grab"></div>
@@ -541,9 +596,9 @@ function openBooks(expanded = screen.book || 'matthew') {
       <span id="edVerify" role="button" tabindex="0">Verify this edition</span>
       <span id="edCorrections" role="button" tabindex="0">Corrections</span>
     </div>`;
-  $$('#sh-books [data-tr]').forEach(el => el.onclick = () => {
-    setTranslation(el.dataset.tr);
-    showScreen({ ...screen }); // re-render WHATEVER is behind the sheet in the new translation
+  $$('#sh-books [data-tr]').forEach(el => el.onclick = async () => {
+    await setTranslation(el.dataset.tr);
+    showScreen({ ...screen }); // re-render WHATEVER is behind the sheet in the new edition
     openBooks(expanded);       // then re-open the sheet with the new active state
   });
   $$('#sh-books [data-book]').forEach(el => el.onclick = () => openBooks(el.dataset.book));
@@ -556,10 +611,11 @@ function openBooks(expanded = screen.book || 'matthew') {
   $('#edCorrections').onclick = () => toast(`Corrections: ${data.edition.corrections} — fixes arrive in the next numbered edition, never as silent edits.`);
   $('#edVerify').onclick = async () => {
     try {
-      // ADR-005 §3: verify ALWAYS checks the KJV edition artifact — the graph's substrate.
-      const sum = await editionChecksum(edition);
-      toast(sum === edition.edition.checksum
-        ? `✓ Verified. This artifact matches its published checksum (${sum.slice(0, 18)}…).`
+      // ADR-007 §3: verify the ACTIVE edition — each Edition-2 artifact carries its own
+      // checksum and the SHA-256 of the source PDF it was extracted from.
+      const sum = await editionChecksum(data);
+      toast(sum === data.edition.checksum
+        ? `✓ Verified. This ${trLabel()} artifact matches its published checksum (${sum.slice(0, 18)}…). Source PDF: sha256 ${data.edition.sourcePdf.sha256.slice(0, 12)}…`
         : '✗ Checksum mismatch — this copy differs from the published edition.');
     } catch (err) {
       toast(`Could not verify here: ${err.message} You can also hash data/edition-1.json yourself — the method is in ADR-001.`);
@@ -655,23 +711,20 @@ function wire() {
 
 // ---------- boot ----------
 async function boot() {
-  const edRes = await fetch('./data/edition-1.json');
-  if (!edRes.ok) throw new Error(`edition-1.json: HTTP ${edRes.status}`);
-  edition = await edRes.json();
-  // The WEB layer is optional: if it fails, the KJV edition still reads fully.
-  try {
-    const ovRes = await fetch('./data/web-overlay-1.json');
-    overlay = ovRes.ok ? await ovRes.json() : null;
-  } catch { overlay = null; }
-  if (!overlay) console.warn('WEB overlay unavailable — KJV only this session.');
-  const problems = validateEdition(edition);
+  const edRes = await fetch('./data/edition-2-kjv.json');
+  if (!edRes.ok) throw new Error(`edition-2-kjv.json: HTTP ${edRes.status}`);
+  editions.kjv = await edRes.json();
+  const problems = validateEdition(editions.kjv);
   if (problems.length) console.warn('Edition integrity problems:', problems);
-  data = edition;
-  if (translation) setTranslation(translation);
-  $('#edMark').textContent = 'Ed ' + edition.edition.number;
+  data = editions.kjv;
+  if (translation) await setTranslation(translation); // restores WEB if that was the choice
+  $('#edMark').textContent = 'Ed ' + editions.kjv.edition.number;
   wire();
   updateTrailCount();
   if (!store.read('wtw.taught', 0)) { showScreen({ type: 'teach' }); return; }
+  // ADR-007: a deep link is a reader's explicit choice — honor it first.
+  const linked = parseHash(location.hash);
+  if (linked) { showScreen(linked, { fromHash: true }); return; }
   const last = lastContinue();
   // No preloaded content (ADR-005): resume only a place the reader chose; else choose.
   showScreen(translation && last
@@ -681,6 +734,7 @@ async function boot() {
 
 boot().catch(err => {
   $('#view').innerHTML = `<div class="honest"><p>The edition failed to load.</p></div>
-    <p class="quiet">${escapeHtml(String(err))} — the artifact is plain JSON at
-    <a href="./data/edition-1.json">data/edition-1.json</a>.</p>`;
+    <p class="quiet">${escapeHtml(String(err))} — the artifacts are plain JSON at
+    <a href="./data/edition-2-kjv.json">data/edition-2-kjv.json</a> and
+    <a href="./data/edition-2-web.json">data/edition-2-web.json</a>.</p>`;
 });

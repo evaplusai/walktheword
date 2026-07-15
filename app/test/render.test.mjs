@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { escapeHtml, verseHTML, chapterHTML } from '../lib/render.mjs';
 import { getVerse } from '../lib/graph.mjs';
 
-const data = JSON.parse(readFileSync(new URL('../data/edition-1.json', import.meta.url), 'utf8'));
+const data = JSON.parse(readFileSync(new URL('../data/edition-2-kjv.json', import.meta.url), 'utf8'));
 
 test('escapeHtml neutralizes markup', () => {
   assert.equal(escapeHtml('<b>&"\'</b>'), '&lt;b&gt;&amp;&quot;&#39;&lt;/b&gt;');

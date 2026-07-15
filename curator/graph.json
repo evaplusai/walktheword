@@ -1,0 +1,214 @@
+{
+  "_status": "curator-review-pending — carried from Edition 1 (three judged cycles); claims, moment backstories, and question copy are curator-editable metadata, not scripture (ADR-006 §3)",
+  "nodes": [
+    {
+      "id": "event:sower",
+      "type": "event",
+      "name": "The Sower",
+      "witnesses": [
+        {
+          "book": "matthew",
+          "ref": "matthew:13:3-9"
+        },
+        {
+          "book": "mark",
+          "ref": "mark:4:3-9"
+        },
+        {
+          "book": "luke",
+          "ref": "luke:8:5-8"
+        }
+      ],
+      "aligned": {
+        "matthew": "Behold, a sower went forth to sow",
+        "mark": "Hearken; Behold, there went out a sower to sow",
+        "luke": "A sower went out to sow his seed"
+      },
+      "divergence": {
+        "grade": "B",
+        "text": "Mark alone carries a fourth seed parable — the seed growing secretly.",
+        "ref": "mark:4:26-29"
+      },
+      "key": {
+        "grade": "A",
+        "ref": "luke:8:11",
+        "label": "Luke states the key",
+        "phrase": "The seed is the word of God"
+      }
+    },
+    {
+      "id": "tradition:bay-of-parables",
+      "type": "tradition",
+      "name": "The Bay of Parables",
+      "text": "Tradition places this teaching in a cove on Galilee's north-west shore whose slope forms a natural amphitheatre, where a voice from a boat carries to a crowd on the hillside. The text itself says only that he sat by the sea side.",
+      "source": "Local tradition; the site is a modern identification, not scripture"
+    },
+    {
+      "id": "thread:seed",
+      "type": "thread",
+      "name": "Seed",
+      "stops": [
+        {
+          "ref": "matthew:13:3",
+          "grade": "A",
+          "label": "The sower"
+        },
+        {
+          "ref": "matthew:13:31",
+          "grade": "A",
+          "label": "The mustard seed"
+        },
+        {
+          "ref": "mark:4:26",
+          "grade": "B",
+          "label": "The seed growing secretly",
+          "note": "Mark only"
+        },
+        {
+          "ref": "john:12:24",
+          "grade": "A",
+          "label": "The corn of wheat"
+        },
+        {
+          "ref": "galatians:6:7",
+          "grade": "A",
+          "label": "Sowing and reaping"
+        },
+        {
+          "ref": "1peter:1:23",
+          "grade": "A",
+          "label": "Incorruptible seed"
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "mt13-14-quotes-isa6-9",
+      "from": "matthew:13:14",
+      "to": "isaiah:6:9",
+      "rel": "quotes",
+      "grade": "A",
+      "warrant": "matthew:13:14",
+      "claim": "Matthew 13:14 quotes Isaiah 6:9",
+      "anchor": {
+        "ref": "matthew:13:14",
+        "phrase": "the prophecy of Esaias, which saith"
+      }
+    },
+    {
+      "id": "mt13-3-witnesses-sower",
+      "from": "matthew:13:3",
+      "to": "event:sower",
+      "rel": "witnesses",
+      "grade": "B",
+      "warrant": [
+        "mark:4:3",
+        "luke:8:5"
+      ],
+      "claim": "Matthew, Mark and Luke each tell the sower",
+      "anchor": {
+        "ref": "matthew:13:3",
+        "phrase": "a sower went forth to sow"
+      }
+    },
+    {
+      "id": "mt13-2-tradition-bay",
+      "from": "matthew:13:2",
+      "to": "tradition:bay-of-parables",
+      "rel": "tradition",
+      "grade": "C",
+      "warrant": "matthew:13:2",
+      "claim": "Tradition names the shore where he sat — the text does not",
+      "anchor": {
+        "ref": "matthew:13:2",
+        "phrase": "the whole multitude stood on the shore"
+      }
+    },
+    {
+      "id": "mt13-31-thread-seed",
+      "from": "matthew:13:31",
+      "to": "thread:seed",
+      "rel": "thread",
+      "grade": "A",
+      "warrant": "matthew:13:31",
+      "claim": "One image — seed — followed across the canon",
+      "anchor": {
+        "ref": "matthew:13:31",
+        "phrase": "a grain of mustard seed"
+      }
+    },
+    {
+      "id": "lk8-11-key-sower",
+      "from": "luke:8:11",
+      "to": "event:sower",
+      "rel": "states",
+      "grade": "A",
+      "warrant": "luke:8:11",
+      "claim": "Luke states the key of the sower parable",
+      "anchor": {
+        "ref": "luke:8:11",
+        "phrase": "The seed is the word of God"
+      }
+    }
+  ],
+  "moments": [
+    {
+      "id": "hard-day",
+      "label": "Sounds like a hard day — places to stand",
+      "keywords": [
+        "hospital",
+        "sick",
+        "illness",
+        "afraid",
+        "fear",
+        "scared",
+        "alone",
+        "grief",
+        "grieving",
+        "died",
+        "death",
+        "dying",
+        "funeral",
+        "worried",
+        "worry",
+        "anxious",
+        "crisis",
+        "hard day",
+        "broken heart",
+        "heartbroken"
+      ],
+      "routes": [
+        {
+          "ref": "psalms:121",
+          "why": "A song for the road, sung by pilgrims on a hard journey."
+        },
+        {
+          "ref": "psalms:34:18",
+          "why": "David's psalm — its own title binds it to the day he escaped from Abimelech."
+        },
+        {
+          "ref": "isaiah:41:10",
+          "why": "Spoken to a people in exile, afraid for those far away."
+        }
+      ]
+    }
+  ],
+  "questions": [
+    {
+      "id": "hebrews-author",
+      "keywords": [
+        "wrote hebrews",
+        "hebrews author",
+        "author of hebrews",
+        "who wrote the letter to the hebrews"
+      ],
+      "honest": "The text does not name its author.",
+      "cites": [
+        "hebrews:13:23",
+        "2peter:3:15-16"
+      ],
+      "open": "Authorship proposals — Paul, Apollos, Barnabas — are tradition and scholarship, not text. Open question, declared on the page."
+    }
+  ]
+}

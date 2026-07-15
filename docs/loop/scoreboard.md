@@ -76,6 +76,17 @@ missing-ref honesty; psalm superscriptions; notes export; 13 new adversarial tes
 - ✅ Cleared by adversarial trace: trail is sessionStorage-only, no double-count on
   delegated listeners, no harmonization, aligned phrases verbatim in all three witnesses.
 
+## Cycle 4 — ADR-006/007: full-canon rebuild + navigation — gates T/V ✅, judging
+Curator directive: erase everything generated, rebuild per-edition from the source PDFs
+only, fully loaded, fix navigation. Done: all prior data deleted; two complete editions
+(66 books / 1,189 chapters / 31,102 verses EACH — exact canonical KJV count, matched
+independently by both PDFs) extracted fresh with source-PDF sha256 provenance in each
+manifest; ~1,950 + 1,753 receipted split-word repairs corpus-wide; WEB's 4 omitted verses
+receipted (Lk 17:36, Acts 8:37/15:34/24:7); graph moved to curator/graph.json
+(review-pending). Navigation: URL hash routing (browser back/forward + deep links),
+lazy WEB load, start-screen accordion, verify-per-active-edition, all-66-book search
+aliases. Tests 36/36.
+
 ## Cycle 3 verdict — COMPLETE ✅ (ADR-005: 78 → **97 PASS**)
 Round 1 (78): 8 defects incl. two high — WEB-mode Verify falsely reported mismatch;
 fresh readers could land in text with no translation chosen. All fixed (commit 344b5d5);

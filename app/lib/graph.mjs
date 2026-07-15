@@ -4,16 +4,49 @@
 export const GRADES = ['A', 'B', 'C'];
 
 const BOOK_ALIASES = {
-  matthew: ['matthew', 'matt', 'mt'],
-  mark: ['mark', 'mk', 'mr'],
-  luke: ['luke', 'lk', 'lu'],
-  john: ['john', 'jn', 'joh'],
-  psalms: ['psalms', 'psalm', 'ps', 'psa'],
-  isaiah: ['isaiah', 'isa', 'is'],
-  galatians: ['galatians', 'gal'],
-  hebrews: ['hebrews', 'heb'],
+  genesis: ['genesis', 'gen', 'ge'], exodus: ['exodus', 'exo', 'ex'],
+  leviticus: ['leviticus', 'lev', 'le'], numbers: ['numbers', 'num', 'nu'],
+  deuteronomy: ['deuteronomy', 'deut', 'deu', 'dt'], joshua: ['joshua', 'josh', 'jos'],
+  judges: ['judges', 'judg', 'jdg'], ruth: ['ruth', 'rut', 'ru'],
+  '1samuel': ['1samuel', '1 samuel', '1sam', '1 sam', '1sa'],
+  '2samuel': ['2samuel', '2 samuel', '2sam', '2 sam', '2sa'],
+  '1kings': ['1kings', '1 kings', '1kgs', '1 kgs', '1ki'],
+  '2kings': ['2kings', '2 kings', '2kgs', '2 kgs', '2ki'],
+  '1chronicles': ['1chronicles', '1 chronicles', '1chron', '1 chron', '1chr', '1ch'],
+  '2chronicles': ['2chronicles', '2 chronicles', '2chron', '2 chron', '2chr', '2ch'],
+  ezra: ['ezra', 'ezr'], nehemiah: ['nehemiah', 'neh', 'ne'],
+  esther: ['esther', 'esth', 'est'], job: ['job', 'jb'],
+  psalms: ['psalms', 'psalm', 'ps', 'psa'], proverbs: ['proverbs', 'prov', 'pro', 'pr'],
+  ecclesiastes: ['ecclesiastes', 'eccl', 'ecc', 'ec'],
+  songofsolomon: ['songofsolomon', 'song of solomon', 'song', 'sos', 'sg'],
+  isaiah: ['isaiah', 'isa', 'is'], jeremiah: ['jeremiah', 'jer', 'je'],
+  lamentations: ['lamentations', 'lam', 'la'], ezekiel: ['ezekiel', 'ezek', 'eze'],
+  daniel: ['daniel', 'dan', 'da'], hosea: ['hosea', 'hos', 'ho'],
+  joel: ['joel', 'joe', 'jl'], amos: ['amos', 'amo', 'am'],
+  obadiah: ['obadiah', 'obad', 'oba', 'ob'], jonah: ['jonah', 'jon'],
+  micah: ['micah', 'mic', 'mi'], nahum: ['nahum', 'nah', 'na'],
+  habakkuk: ['habakkuk', 'hab', 'hb'], zephaniah: ['zephaniah', 'zeph', 'zep'],
+  haggai: ['haggai', 'hag', 'hg'], zechariah: ['zechariah', 'zech', 'zec'],
+  malachi: ['malachi', 'mal', 'ml'],
+  matthew: ['matthew', 'matt', 'mt'], mark: ['mark', 'mk', 'mr'],
+  luke: ['luke', 'lk', 'lu'], john: ['john', 'jn', 'joh'],
+  acts: ['acts', 'act', 'ac'], romans: ['romans', 'rom', 'ro'],
+  '1corinthians': ['1corinthians', '1 corinthians', '1cor', '1 cor', '1co'],
+  '2corinthians': ['2corinthians', '2 corinthians', '2cor', '2 cor', '2co'],
+  galatians: ['galatians', 'gal', 'ga'], ephesians: ['ephesians', 'eph', 'ep'],
+  philippians: ['philippians', 'phil', 'php'], colossians: ['colossians', 'col', 'co'],
+  '1thessalonians': ['1thessalonians', '1 thessalonians', '1thess', '1 thess', '1th'],
+  '2thessalonians': ['2thessalonians', '2 thessalonians', '2thess', '2 thess', '2th'],
+  '1timothy': ['1timothy', '1 timothy', '1tim', '1 tim', '1ti'],
+  '2timothy': ['2timothy', '2 timothy', '2tim', '2 tim', '2ti'],
+  titus: ['titus', 'tit', 'ti'], philemon: ['philemon', 'philem', 'phm'],
+  hebrews: ['hebrews', 'heb', 'he'], james: ['james', 'jas', 'jam'],
   '1peter': ['1peter', '1 peter', '1pet', '1 pet', '1pe'],
-  '2peter': ['2peter', '2 peter', '2pet', '2 pet', '2pe']
+  '2peter': ['2peter', '2 peter', '2pet', '2 pet', '2pe'],
+  '1john': ['1john', '1 john', '1jn', '1 jn', '1jo'],
+  '2john': ['2john', '2 john', '2jn', '2 jn', '2jo'],
+  '3john': ['3john', '3 john', '3jn', '3 jn', '3jo'],
+  jude: ['jude', 'jud'], revelation: ['revelation', 'rev', 're']
 };
 
 // ---------- lookup ----------
@@ -132,7 +165,7 @@ export function parseRefQuery(q) {
     .replace(/[.,;:!?]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
-  const m = /^([1-3]? ?[a-z]+) (\d+)(?: (\d+))?$/.exec(norm);
+  const m = /^([1-3]? ?[a-z]+(?: [a-z]+){0,2}) (\d+)(?: (\d+))?$/.exec(norm);
   if (!m) return null;
   const rawBook = m[1].replace(/\s+/g, '');
   let bookId = null;
@@ -285,19 +318,6 @@ export function validateEdition(data) {
     if (!question.honest) errors.push(`question ${question.id}: missing honest line`);
   }
   return errors;
-}
-
-// ---------- translations (ADR-005 §3) ----------
-
-// A translation is a display layer over the unchanged graph (PRD §7): same books,
-// same edges, same grades — only the verse text swaps.
-export function applyTranslation(edition, overlayBooks, translationLabel) {
-  const clone = JSON.parse(JSON.stringify(edition));
-  for (const book of clone.books) {
-    if (overlayBooks[book.id]) book.chapters = overlayBooks[book.id];
-  }
-  clone.edition.translation = translationLabel;
-  return clone;
 }
 
 // ---------- checksum (ADR-001 §3) ----------

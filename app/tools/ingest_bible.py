@@ -1,264 +1,321 @@
 #!/usr/bin/env python3
-"""Ingest curator-provided Bible PDFs into edition data (ADR-001 open item: text verification).
+"""ADR-006: build FULL-CANON editions directly from the curator's source PDFs.
 
-Reads pre-extracted page text (kjv_full.txt / web_full.txt from pypdf), pulls WHOLE
-chapters for Edition 1, strips editorial matter (section headings, parallel-reference
-lines, page markers), applies recorded normalizations, and writes:
-  docs/00_bible/extracted/{kjv,web}-edition1.json   (curator-inspectable intermediates)
+Usage: python3 app/tools/ingest_bible.py <workdir>
 
-Recorded normalizations (ADR-001):
-  - [brackets] marking KJV supplied words are removed, keeping the word (the print
-    convention for italics; the words are part of the KJV text).
-  - curly apostrophes/quotes -> straight; whitespace collapsed.
-  - psalm superscriptions stay INSIDE verse 1, exactly as the source prints them.
-Everything else is verbatim from the source PDF.
+Reads docs/00_bible/bible_{kjv,web}.pdf (the ONLY text sources — nothing reused from
+prior runs; page text is re-extracted into <workdir> fresh when absent), extracts all
+66 books / 1,189 chapters per translation, and writes:
+
+  app/data/edition-2-kjv.json     complete KJV edition (+ curator graph, provenance)
+  app/data/edition-2-web.json     complete WEB edition (same graph; anchors are KJV-bound)
+  docs/00_bible/extracted/        receipts: canon JSONs, lexicons, bigram checks, autorepairs
+
+Recorded normalizations (nothing silent):
+  - supplied-word [brackets] -> plain; curly quotes -> straight; split contractions rejoined
+  - Hebrew acrostic markers stripped; ALL-CAPS acrostic titles (ALEPH.) dropped only when
+    they precede a verse number (same guard as section headings)
+  - psalm superscriptions stay INSIDE verse 1 as the source prints them
+  - PDF letter-spacing split words: explicit REPAIRS list + corpus-lexicon scan +
+    single-letter rule + join-vs-bigram frequency test; every join receipted; fail-loud
+Structural gates: every book must yield EXACTLY its canonical chapter count; every
+chapter's verses must be contiguous from 1.
 """
-import json, re, sys, os
+import hashlib, json, os, re, sys, time
+from collections import Counter
 
-CHAPTERS = [  # (bookId, chapter, header text in PDF)
-    ('psalms', 34, 'Psalm 34'), ('psalms', 121, 'Psalm 121'),
-    ('isaiah', 6, 'Isaiah 6'), ('isaiah', 41, 'Isaiah 41'),
-    ('matthew', 13, 'Matthew 13'), ('mark', 4, 'Mark 4'), ('luke', 8, 'Luke 8'),
-    ('john', 3, 'John 3'), ('john', 12, 'John 12'),
-    ('galatians', 6, 'Galatians 6'), ('hebrews', 13, 'Hebrews 13'),
-    ('1peter', 1, '1 Peter 1'), ('2peter', 3, '2 Peter 3'),
+# (id, display name, PDF header name, canonical order, canonical chapter count)
+BOOKS = [
+    ('genesis','Genesis','Genesis',1,50),('exodus','Exodus','Exodus',2,40),
+    ('leviticus','Leviticus','Leviticus',3,27),('numbers','Numbers','Numbers',4,36),
+    ('deuteronomy','Deuteronomy','Deuteronomy',5,34),('joshua','Joshua','Joshua',6,24),
+    ('judges','Judges','Judges',7,21),('ruth','Ruth','Ruth',8,4),
+    ('1samuel','1 Samuel','1 Samuel',9,31),('2samuel','2 Samuel','2 Samuel',10,24),
+    ('1kings','1 Kings','1 Kings',11,22),('2kings','2 Kings','2 Kings',12,25),
+    ('1chronicles','1 Chronicles','1 Chronicles',13,29),('2chronicles','2 Chronicles','2 Chronicles',14,36),
+    ('ezra','Ezra','Ezra',15,10),('nehemiah','Nehemiah','Nehemiah',16,13),
+    ('esther','Esther','Esther',17,10),('job','Job','Job',18,42),
+    ('psalms','Psalms','Psalm',19,150),('proverbs','Proverbs','Proverbs',20,31),
+    ('ecclesiastes','Ecclesiastes','Ecclesiastes',21,12),('songofsolomon','Song of Solomon','Song of Solomon',22,8),
+    ('isaiah','Isaiah','Isaiah',23,66),('jeremiah','Jeremiah','Jeremiah',24,52),
+    ('lamentations','Lamentations','Lamentations',25,5),('ezekiel','Ezekiel','Ezekiel',26,48),
+    ('daniel','Daniel','Daniel',27,12),('hosea','Hosea','Hosea',28,14),
+    ('joel','Joel','Joel',29,3),('amos','Amos','Amos',30,9),
+    ('obadiah','Obadiah','Obadiah',31,1),('jonah','Jonah','Jonah',32,4),
+    ('micah','Micah','Micah',33,7),('nahum','Nahum','Nahum',34,3),
+    ('habakkuk','Habakkuk','Habakkuk',35,3),('zephaniah','Zephaniah','Zephaniah',36,3),
+    ('haggai','Haggai','Haggai',37,2),('zechariah','Zechariah','Zechariah',38,14),
+    ('malachi','Malachi','Malachi',39,4),
+    ('matthew','Matthew','Matthew',40,28),('mark','Mark','Mark',41,16),
+    ('luke','Luke','Luke',42,24),('john','John','John',43,21),
+    ('acts','Acts','Acts',44,28),('romans','Romans','Romans',45,16),
+    ('1corinthians','1 Corinthians','1 Corinthians',46,16),('2corinthians','2 Corinthians','2 Corinthians',47,13),
+    ('galatians','Galatians','Galatians',48,6),('ephesians','Ephesians','Ephesians',49,6),
+    ('philippians','Philippians','Philippians',50,4),('colossians','Colossians','Colossians',51,4),
+    ('1thessalonians','1 Thessalonians','1 Thessalonians',52,5),('2thessalonians','2 Thessalonians','2 Thessalonians',53,3),
+    ('1timothy','1 Timothy','1 Timothy',54,6),('2timothy','2 Timothy','2 Timothy',55,4),
+    ('titus','Titus','Titus',56,3),('philemon','Philemon','Philemon',57,1),
+    ('hebrews','Hebrews','Hebrews',58,13),('james','James','James',59,5),
+    ('1peter','1 Peter','1 Peter',60,5),('2peter','2 Peter','2 Peter',61,3),
+    ('1john','1 John','1 John',62,5),('2john','2 John','2 John',63,1),
+    ('3john','3 John','3 John',64,1),('jude','Jude','Jude',65,1),
+    ('revelation','Revelation','Revelation',66,22),
 ]
+assert sum(n for *_, n in BOOKS) == 1189 and len(BOOKS) == 66
 
-HEADER_RE = re.compile(r'^[1-3]? ?[A-Z][a-z]+(?: of [A-Z][a-z]+)? \d+\s*$')  # "Matthew 13", "1 Peter 1", "Song of Solomon 2"
-CROSSREF_RE = re.compile(r'\([^)]*\d+:[^)]*\)')  # "(Mark 4:1–9; Luke 8:4–8)"
+CROSSREF_RE = re.compile(r'\([^)]*\d+:[^)]*\)')
 
-def normalize(text):
-    text = text.replace('’', "'").replace('‘', "'")
-    text = text.replace('“', '"').replace('”', '"')
-    text = re.sub(r'\[([^\]]+)\]', r'\1', text)          # supplied-word brackets -> plain
-    text = re.sub(r'[֐-׿]+', ' ', text)        # Hebrew acrostic markers (Ps 34/119 print convention)
-    text = re.sub(r"([A-Za-z])' (t|s|d|ll|re|ve|m)\b", r"\1'\2", text)  # split contractions: "didn' t" -> "didn't"
-    text = re.sub(r'\s+', ' ', text).strip()
-    return text
-
-# Split-word artifacts from PDF letter-spacing, found by scan and repaired EXPLICITLY —
-# every correction is visible here, none applied silently (ADR-001 verbatim rule).
+# Explicit split-word repairs found by earlier judged rounds — re-validated every run
+# (each prints NOT NEEDED if the fresh extraction doesn't contain it).
 REPAIRS = {
-    ('kjv', 'isaiah', '6', '9'): [('ye i ndeed', 'ye indeed')],
-    ('kjv', 'isaiah', '41', '17'): [('and t here', 'and there')],
-    ('kjv', 'mark', '4', '11'): [('of t he', 'of the')],
-    ('kjv', 'mark', '4', '36'): [('eve n as', 'even as')],
-    ('kjv', 'luke', '8', '1'): [('with h im', 'with him')],
-    ('kjv', 'luke', '8', '13'): [('r eceive', 'receive')],
-    ('kjv', 'luke', '8', '28'): [('voic e said', 'voice said')],
-    ('web', 'matthew', '13', '27'): [('c ome', 'come')],
-    ('web', 'matthew', '13', '32'): [('s maller', 'smaller')],
-    ('web', 'matthew', '13', '55'): [('and h is', 'and his')],
-    ('web', 'matthew', '13', '57'): [('hi s own', 'his own')],
-    ('web', 'mark', '4', '24'): [('measur e you', 'measure you')],
-    ('web', 'luke', '8', '17'): [('t o light', 'to light')],
-    ('web', 'luke', '8', '51'): [('e nter', 'enter')],
-    ('web', '1peter', '1', '18'): [('th e useless', 'the useless')],
-    ('web', '2peter', '3', '15'): [('t o him', 'to him')],
+    ('kjv','isaiah','6','9'):[('ye i ndeed','ye indeed')],('kjv','isaiah','41','17'):[('and t here','and there')],
+    ('kjv','mark','4','11'):[('of t he','of the')],('kjv','mark','4','36'):[('eve n as','even as')],
+    ('kjv','luke','8','1'):[('with h im','with him')],('kjv','luke','8','13'):[('r eceive','receive')],
+    ('kjv','luke','8','28'):[('voic e said','voice said')],
+    ('web','matthew','13','27'):[('c ome','come')],('web','matthew','13','32'):[('s maller','smaller')],
+    ('web','matthew','13','55'):[('and h is','and his')],('web','matthew','13','57'):[('hi s own','his own')],
+    ('web','mark','4','24'):[('measur e you','measure you')],('web','luke','8','17'):[('t o light','to light')],
+    ('web','luke','8','51'):[('e nter','enter')],('web','1peter','1','18'):[('th e useless','the useless')],
+    ('web','2peter','3','15'):[('t o him','to him')],
 }
 
-def _lexicon(full_txt_path):
-    """Word frequencies from the ENTIRE source PDF text (~1500 pages), so rare-in-slice
-    words like 'revelation' or 'circumcised' are still recognized as words when a split
-    fragments them. The corpus gets the SAME contraction/apostrophe normalization as
-    verse text first — otherwise curly-apostrophe possessives tokenize as word + 's',
-    inflating lex['s'] into the thousands and blinding the scan to splits like
-    'corner s' (found by the round-2 judge). Splits also occur in the full text, but at
-    negligible frequency relative to real word counts."""
-    from collections import Counter
-    text = open(full_txt_path, encoding='utf-8').read()
-    text = text.replace('’', "'").replace('‘', "'")
+def sha256_file(path):
+    h = hashlib.sha256()
+    with open(path,'rb') as f:
+        for chunk in iter(lambda: f.read(1<<20), b''):
+            h.update(chunk)
+    return h.hexdigest()
+
+def extract_pages(pdf_path, cache_path):
+    """Fresh page-text extraction from THIS pdf (cached per-run file keyed to pdf hash)."""
+    from pypdf import PdfReader
+    t0 = time.time()
+    r = PdfReader(pdf_path)
+    with open(cache_path,'w',encoding='utf-8') as f:
+        for i,p in enumerate(r.pages):
+            f.write(f'\n@@PAGE {i+1}@@\n'); f.write(p.extract_text() or '')
+    print(f'  extracted {len(r.pages)} pages in {time.time()-t0:.0f}s')
+
+def normalize(text):
+    text = text.replace('’',"'").replace('‘',"'").replace('“','"').replace('”','"')
+    text = re.sub(r'\[([^\]]+)\]', r'\1', text)
+    text = re.sub(r'[֐-׿]+',' ',text)
     text = re.sub(r"([A-Za-z])' (t|s|d|ll|re|ve|m)\b", r"\1'\2", text)
-    words = [w.strip(".,;:?!()'\"[]").lower() for w in text.split()]
-    lex = Counter(words)
-    # adjacent-pair (bigram) counts — separates real phrases ("pass over", frequent as a
-    # pair) from splits ("fat her", a pair that never legitimately occurs)
-    bigrams = Counter((words[i], words[i + 1]) for i in range(len(words) - 1)
-                      if words[i].isalpha() and words[i + 1].isalpha())
-    return lex, bigrams
+    return re.sub(r'\s+',' ',text).strip()
 
-def lexicon_split_scan(data, lex, bigrams=None):
-    """Detect split words by corpus statistics, per translation: an adjacent token pair
-    is a suspect when the JOINED form is a common word of the FULL source corpus
-    (>=3 uses) while a fragment is not (<=1 use). Catches 'ca me', 'mot her', 'Chris t',
-    'a lso', 'revelati on' — multi-letter fragments and punctuation included."""
-    strip = ".,;:?!()'\""
-    suspects = []
-    for b, chs in data.items():
-        for c, vs in chs.items():
-            for v, t in vs.items():
-                toks = t.split()
-                for i in range(len(toks) - 1):
-                    a = toks[i].strip(strip).lower()
-                    z = toks[i + 1].strip(strip).lower()
-                    if not (a.isalpha() and z.isalpha()):
-                        continue
-                    if toks[i].strip(strip) and toks[i][-1] in strip:
-                        continue  # fragment can't end with punctuation and continue a word
-                    joined = lex[a + z]
-                    # fragment = rare RELATIVE to the joined word (split fragments recur
-                    # corpus-wide — 'circ' appears twice because the SAME split repeats —
-                    # so an absolute threshold misses them). Single letters are special:
-                    # the corpus itself is polluted with split fragments ('corner s',
-                    # 'wa s' — lex['s']=124, all artifacts), so any standalone letter
-                    # except the legitimate a/I/O is ALWAYS a fragment.
-                    frag = max(2, joined // 10)
-                    a_frag = lex[a] <= frag or (len(a) == 1 and a not in ('a', 'i', 'o'))
-                    z_frag = lex[z] <= frag or (len(z) == 1 and z not in ('a', 'i', 'o'))
-                    if joined >= 3 and (a_frag or z_frag):
-                        suspects.append((b, c, v, toks[i], toks[i + 1], a + z))
-                        continue
-                    # both-fragments-common class ('fat her' -> father, 'be cause' ->
-                    # because, round-3 judge finding): the JOIN is a very common word but
-                    # the pair almost never occurs adjacently in the whole corpus.
-                    # Guards: multi-letter fragments only (protects "a live coal"),
-                    # joined must be frequent, pair must be corpus-rare.
-                    if (bigrams is not None and len(a) >= 2 and len(z) >= 2
-                            and joined >= 50 and bigrams[(a, z)] <= 2
-                            and joined // max(1, bigrams[(a, z)]) >= 100):
-                        suspects.append((b, c, v, toks[i], toks[i + 1], a + z))
-    return suspects
-
-def lexicon_split_scan_and_join(data, translation, lex, bigrams):
-    """Iteratively join detected splits (removing the interior space, keeping case and
-    punctuation) until the scan is clean. Every join is logged and written to the
-    autorepairs.json receipt — nothing is fixed silently."""
-    joins = []
-    for _ in range(5):
-        suspects = lexicon_split_scan(data, lex, bigrams)
-        if not suspects:
-            break
-        for b, c, v, t1, t2, joined in suspects:
-            broken = f'{t1} {t2}'
-            if broken in data[b][c][v]:
-                data[b][c][v] = data[b][c][v].replace(broken, t1 + t2)
-                joins.append({'ref': f'{b} {c}:{v}', 'from': broken, 'to': t1 + t2})
-    print(f'{translation}: {len(joins)} lexicon-detected split-word joins')
-    for j in joins:
-        print(f"  {j['ref']}: \"{j['from']}\" -> \"{j['to']}\"")
-    return joins
-
-def apply_repairs(data, translation):
-    count = 0
-    for (tr, b, c, v), fixes in REPAIRS.items():
-        if tr != translation:
-            continue
-        for old, new in fixes:
-            if old in data[b][c][v]:
-                data[b][c][v] = data[b][c][v].replace(old, new)
-                count += 1
-            else:
-                print(f'  repair NOT NEEDED (already clean?): {tr} {b} {c}:{v} "{old}"')
-    print(f'{translation}: {count} explicit split-word repairs applied')
-    return data
-
-def looks_heading(line):
-    """Shape of an editorial heading: short, starts uppercase, no sentence punctuation."""
-    s = line.strip()
-    if not s or any(c in s for c in '.;:?!,'):
+def looks_heading(s):
+    s = s.strip()
+    if not s or any(c in s for c in ';:?!,'):
         return False
-    words = s.split()
-    return 1 <= len(words) <= 9 and s[0].isupper() and not s[0].isdigit()
+    if re.fullmatch(r'[A-Z]{2,6}\.?', s):   # acrostic titles: ALEPH. BETH. …
+        return True
+    if '.' in s:
+        return False
+    w = s.split()
+    return 1 <= len(w) <= 9 and s[0].isupper() and not s[0].isdigit()
 
 def next_starts_verse_or_ref(lines, i):
-    """True when the following content line begins a new verse (bare number) or is a
-    parallel-reference line — the only two things a heading precedes in this layout.
-    Guards against eating punctuation-free VERSE FRAGMENTS (e.g. 'And great multitudes were')."""
-    j = i + 1
+    j = i+1
     while j < len(lines):
-        s = lines[j].strip()
-        j += 1
+        s = lines[j].strip(); j += 1
         if not s or s.startswith('@@PAGE'):
             continue
         return bool(re.match(r'^\d{1,3}\b', s)) or bool(re.match(r'^\([^)]*\d+:', s))
     return False
 
-def extract_chapter(lines, start_idx, label):
-    """From the chapter header line, collect verse map until the next chapter header."""
-    i = start_idx + 1
+def parse_chunk(lines, start, end, label):
     body = []
-    while i < len(lines):
-        line = lines[i]
-        if HEADER_RE.match(line.strip()) and i + 1 < len(lines) and '[Online]' in lines[i + 1]:
-            break  # next chapter begins
-        s = line.strip()
-        if not s or s.startswith('@@PAGE') or '[Online]' in s:
-            i += 1
-            continue
-        if looks_heading(CROSSREF_RE.sub(' ', s).strip()) and next_starts_verse_or_ref(lines, i):
-            i += 1
-            continue
-        body.append(CROSSREF_RE.sub(' ', s))
+    i = start+1
+    while i < end:
+        s = lines[i].strip()
+        if s and not s.startswith('@@PAGE') and '[Online]' not in s:
+            clean = CROSSREF_RE.sub(' ', s).strip()
+            if not (looks_heading(clean) and next_starts_verse_or_ref(lines, i)):
+                body.append(CROSSREF_RE.sub(' ', s))
         i += 1
-    # Sequential verse split: accept a bare integer token only when it is the NEXT verse.
     tokens = ' '.join(body).split()
     verses, current, expected = {}, [], 1
     for tok in tokens:
         if tok.isdigit() and int(tok) == expected:
             if expected > 1:
-                verses[str(expected - 1)] = normalize(' '.join(current))
-            current, expected = [], expected + 1
+                verses[str(expected-1)] = normalize(' '.join(current))
+            current, expected = [], expected+1
         else:
             current.append(tok)
     if expected > 1:
-        verses[str(expected - 1)] = normalize(' '.join(current))
+        verses[str(expected-1)] = normalize(' '.join(current))
     if not verses:
-        sys.exit(f'FATAL: no verses parsed for {label}')
+        sys.exit(f'FATAL: bad parse at {label}')
+    # empty verses are legitimate: some translations omit certain verses (e.g. WEB
+    # Luke 17:36) — kept as '' so numbering stays honest; receipted by the caller
     return verses
 
-def ingest(txt_path, translation):
-    lines = open(txt_path, encoding='utf-8').read().splitlines()
-    # index all chapter-header line numbers
-    headers = {}
-    for idx, line in enumerate(lines):
-        s = line.strip()
-        if HEADER_RE.match(s) and idx + 1 < len(lines) and '[Online]' in lines[idx + 1]:
-            headers.setdefault(s, []).append(idx)
-    out = {}
-    for book_id, chapter, header in CHAPTERS:
-        if header not in headers:
-            sys.exit(f'FATAL: header "{header}" not found in {translation}')
-        idx = headers[header][0]
-        verses = extract_chapter(lines, idx, f'{translation} {header}')
-        out.setdefault(book_id, {})[str(chapter)] = verses
-        print(f'{translation} {header}: {len(verses)} verses')
-    return out
+def ingest_translation(cache_path, tag):
+    lines = open(cache_path,encoding='utf-8').read().splitlines()
+    # index every "<Header> <n>" line confirmed by "[Online]" on the next line
+    positions = []   # (line_idx, header_name, chapter)
+    by_header = {}
+    header_names = {h for _,_,h,_,_ in BOOKS}
+    hre = re.compile(r'^(' + '|'.join(re.escape(h) for h in sorted(header_names,key=len,reverse=True)) + r') (\d{1,3})\s*$')
+    def confirmed(idx):
+        # the "[Online]" line may sit after a page break — skip blanks and @@PAGE marks
+        j = idx+1
+        while j < len(lines) and (not lines[j].strip() or lines[j].startswith('@@PAGE')):
+            j += 1
+        return j < len(lines) and '[Online]' in lines[j]
+    for idx,line in enumerate(lines):
+        m = hre.match(line.strip())
+        if m and confirmed(idx):
+            positions.append((idx, m.group(1), int(m.group(2))))
+            by_header[(m.group(1), int(m.group(2)))] = len(positions)-1
+    out, problems = {}, []
+    for bid, name, header, order, total in BOOKS:
+        chapters = {}
+        for ch in range(1, total+1):
+            pos = by_header.get((header, ch))
+            if pos is None:
+                problems.append(f'{tag}: header "{header} {ch}" not found'); continue
+            start = positions[pos][0]
+            end = positions[pos+1][0] if pos+1 < len(positions) else len(lines)
+            chapters[str(ch)] = parse_chunk(lines, start, end, f'{tag} {header} {ch}')
+        if len(chapters) != total:
+            problems.append(f'{tag}: {name} has {len(chapters)}/{total} chapters')
+        out[bid] = chapters
+    if problems:
+        sys.exit('FATAL headers/chapters:\n  ' + '\n  '.join(problems[:20]) + f'\n  ({len(problems)} total)')
+    omissions = [f'{b} {c}:{v}' for b,chs in out.items() for c,vs in chs.items()
+                 for v,t in vs.items() if t == '']
+    if omissions:
+        print(f'  {tag}: {len(omissions)} verse(s) omitted by this translation: {", ".join(omissions[:8])}{"…" if len(omissions)>8 else ""}')
+    return out, omissions
 
-if __name__ == '__main__':
-    cache_dir = sys.argv[1]  # dir containing kjv_full.txt / web_full.txt
+def build_lexicons(cache_path):
+    text = open(cache_path,encoding='utf-8').read()
+    text = text.replace('’',"'").replace('‘',"'")
+    text = re.sub(r"([A-Za-z])' (t|s|d|ll|re|ve|m)\b", r"\1'\2", text)
+    words = [w.strip(".,;:?!()'\"[]").lower() for w in text.split()]
+    lex = Counter(words)
+    bigrams = Counter((words[i],words[i+1]) for i in range(len(words)-1)
+                      if words[i].isalpha() and words[i+1].isalpha())
+    return lex, bigrams
+
+def split_scan(data, lex, bigrams):
+    strip = ".,;:?!()'\""
+    suspects = []
+    for b,chs in data.items():
+        for c,vs in chs.items():
+            for v,t in vs.items():
+                toks = t.split()
+                for i in range(len(toks)-1):
+                    a = toks[i].strip(strip).lower(); z = toks[i+1].strip(strip).lower()
+                    if not (a.isalpha() and z.isalpha()):
+                        continue
+                    if toks[i].strip(strip) and toks[i][-1] in strip:
+                        continue
+                    joined = lex[a+z]
+                    frag = max(2, joined//10)
+                    a_frag = lex[a] <= frag or (len(a)==1 and a not in ('a','i','o'))
+                    z_frag = lex[z] <= frag or (len(z)==1 and z not in ('a','i','o'))
+                    if joined >= 3 and (a_frag or z_frag):
+                        suspects.append((b,c,v,toks[i],toks[i+1])); continue
+                    if (len(a)>=2 and len(z)>=2 and joined>=50 and bigrams[(a,z)]<=2
+                            and joined // max(1,bigrams[(a,z)]) >= 100):
+                        suspects.append((b,c,v,toks[i],toks[i+1]))
+    return suspects
+
+def apply_repairs_and_scan(data, tag, lex, bigrams):
+    applied = 0
+    for (tr,b,c,v),fixes in REPAIRS.items():
+        if tr != tag: continue
+        for old,new in fixes:
+            if old in data[b][c][v]:
+                data[b][c][v] = data[b][c][v].replace(old,new); applied += 1
+            else:
+                print(f'  repair NOT NEEDED: {tag} {b} {c}:{v} "{old}"')
+    joins = []
+    for _ in range(6):
+        sus = split_scan(data, lex, bigrams)
+        if not sus: break
+        for b,c,v,t1,t2 in sus:
+            broken = f'{t1} {t2}'
+            if broken in data[b][c][v]:
+                data[b][c][v] = data[b][c][v].replace(broken, t1+t2)
+                joins.append({'ref':f'{b} {c}:{v}','from':broken,'to':t1+t2})
+    residual = split_scan(data, lex, bigrams)
+    if residual:
+        sys.exit(f'FATAL: residual splits in {tag}: {residual[:5]}')
+    print(f'  {tag}: {applied} explicit repairs, {len(joins)} lexicon/bigram joins')
+    return joins
+
+def main():
+    workdir = sys.argv[1]
     os.makedirs('docs/00_bible/extracted', exist_ok=True)
-    all_autorepairs = {}
-    for tr in ('kjv', 'web'):
-        full_txt = os.path.join(cache_dir, f'{tr}_full.txt')
-        lex, bigrams = _lexicon(full_txt)
-        data = ingest(full_txt, tr.upper())
-        data = apply_repairs(data, tr)
-        joins = lexicon_split_scan_and_join(data, tr, lex, bigrams)
-        all_autorepairs[tr] = joins
-        # final fail-loud pass: after joining, a re-scan must find nothing
-        residual = lexicon_split_scan(data, lex, bigrams)
-        if residual:
-            sys.exit(f'FATAL: residual split-word artifacts in {tr}: {residual[:5]}')
-        with open(f'docs/00_bible/extracted/{tr}-edition1.json', 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-        # export the FULL corpus lexicon (all counts, alpha words) so the test suite runs
-        # the IDENTICAL scan against shipped data — same counts, same thresholds
-        with open(f'docs/00_bible/extracted/lexicon-{tr}.json', 'w', encoding='utf-8') as f:
-            json.dump({w: n for w, n in lex.items() if w.isalpha()}, f, ensure_ascii=False)
-        # export corpus bigram counts for every adjacent pair in the SHIPPED slice whose
-        # join is a corpus word — lets the test suite run the bigram rule identically
+    os.makedirs('app/data', exist_ok=True)
+    graph = json.load(open('curator/graph.json'))
+    autorepairs = {}
+    for tag in ('kjv','web'):
+        pdf = f'docs/00_bible/bible_{tag}.pdf'
+        pdf_sha = sha256_file(pdf)
+        cache = os.path.join(workdir, f'{tag}-{pdf_sha[:12]}.pages.txt')
+        print(f'{tag.upper()} <- {pdf} (sha256 {pdf_sha[:16]}…)')
+        if not os.path.exists(cache):
+            extract_pages(pdf, cache)
+        lex, bigrams = build_lexicons(cache)
+        data, omissions = ingest_translation(cache, tag)
+        joins = apply_repairs_and_scan(data, tag, lex, bigrams)
+        autorepairs[tag] = joins
+        autorepairs[f'{tag}-omitted-verses'] = omissions
+        total_verses = sum(len(vs) for chs in data.values() for vs in chs.values())
+        total_chapters = sum(len(chs) for chs in data.values())
+        print(f'  {tag}: 66 books, {total_chapters} chapters, {total_verses} verses')
+        assert total_chapters == 1189
+        # receipts
+        json.dump(data, open(f'docs/00_bible/extracted/{tag}-canon.json','w'), ensure_ascii=False)
+        json.dump({w:n for w,n in lex.items() if w.isalpha()},
+                  open(f'docs/00_bible/extracted/lexicon-{tag}.json','w'), ensure_ascii=False)
         checks = {}
         for chs in data.values():
             for vs in chs.values():
                 for t in vs.values():
                     toks = t.split()
-                    for i in range(len(toks) - 1):
-                        a = toks[i].strip(".,;:?!()'\"").lower()
-                        z = toks[i + 1].strip(".,;:?!()'\"").lower()
-                        if a.isalpha() and z.isalpha() and lex[a + z] >= 3:
-                            checks[f'{a} {z}'] = bigrams[(a, z)]
-        with open(f'docs/00_bible/extracted/bigrams-{tr}.json', 'w', encoding='utf-8') as f:
-            json.dump(checks, f, ensure_ascii=False)
-    with open('docs/00_bible/extracted/autorepairs.json', 'w', encoding='utf-8') as f:
-        json.dump(all_autorepairs, f, indent=2, ensure_ascii=False)
-    print('extracted -> docs/00_bible/extracted/ (+ autorepairs.json, lexicon-*.json receipts)')
+                    for i in range(len(toks)-1):
+                        a = toks[i].strip(".,;:?!()'\"").lower(); z = toks[i+1].strip(".,;:?!()'\"").lower()
+                        if a.isalpha() and z.isalpha() and lex[a+z] >= 3:
+                            checks[f'{a} {z}'] = bigrams[(a,z)]
+        json.dump(checks, open(f'docs/00_bible/extracted/bigrams-{tag}.json','w'), ensure_ascii=False)
+        # the edition artifact (ADR-006)
+        tr_name = 'KJV (public domain)' if tag=='kjv' else 'WEB (World English Bible, public domain)'
+        edition = {
+            'edition': {
+                'number': 2,
+                'name': f'The whole canon · {tag.upper()}',
+                'published': '2026-07-15',
+                'translation': tr_name,
+                'sourcePdf': {'path': pdf, 'sha256': pdf_sha},
+                'checksum': 'PENDING',
+                'corrections': 'corrections@walktheword.example',
+                'changelog': [
+                    'Edition 2 — every book of the canon (66 books, 1,189 chapters), extracted '
+                    'directly from the curator-provided source PDF; all prior generated data erased '
+                    'and rebuilt (ADR-006). The graded connection map is unchanged from Edition 1.'
+                ],
+                'graphStatus': graph['_status'],
+                'anchorsBoundTo': 'KJV'
+            },
+            'books': [
+                {'id': bid, 'name': name, 'order': order, 'chaptersTotal': total,
+                 'chapters': data[bid]}
+                for bid, name, _h, order, total in BOOKS
+            ],
+            'nodes': graph['nodes'], 'edges': graph['edges'],
+            'moments': graph['moments'], 'questions': graph['questions']
+        }
+        with open(f'app/data/edition-2-{tag}.json','w',encoding='utf-8') as f:
+            json.dump(edition, f, ensure_ascii=False)
+            f.write('\n')
+    json.dump(autorepairs, open('docs/00_bible/extracted/autorepairs.json','w'),
+              indent=2, ensure_ascii=False)
+    print('editions written -> app/data/edition-2-{kjv,web}.json (checksums PENDING; run npm run checksum)')
+
+if __name__ == '__main__':
+    main()

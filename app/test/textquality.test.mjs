@@ -7,8 +7,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const edition = JSON.parse(readFileSync(new URL('../data/edition-1.json', import.meta.url), 'utf8'));
-const overlay = JSON.parse(readFileSync(new URL('../data/web-overlay-1.json', import.meta.url), 'utf8'));
+const edition = JSON.parse(readFileSync(new URL('../data/edition-2-kjv.json', import.meta.url), 'utf8'));
+const overlay = JSON.parse(readFileSync(new URL('../data/edition-2-web.json', import.meta.url), 'utf8'));
 const lexKJV = JSON.parse(readFileSync(new URL('../../docs/00_bible/extracted/lexicon-kjv.json', import.meta.url), 'utf8'));
 const lexWEB = JSON.parse(readFileSync(new URL('../../docs/00_bible/extracted/lexicon-web.json', import.meta.url), 'utf8'));
 const bigKJV = JSON.parse(readFileSync(new URL('../../docs/00_bible/extracted/bigrams-kjv.json', import.meta.url), 'utf8'));
@@ -58,13 +58,14 @@ test('KJV edition text carries no split-word extraction artifacts', () => {
 });
 
 test('WEB overlay text carries no split-word extraction artifacts', () => {
-  assert.deepEqual(splitSuspects(overlay.books, lexWEB, bigWEB), []);
+  assert.deepEqual(splitSuspects(Object.fromEntries(overlay.books.map(b => [b.id, b.chapters])), lexWEB, bigWEB), []);
 });
 
 test('every recorded auto-repair is applied in shipped data (receipt ↔ reality)', () => {
   const repairs = JSON.parse(readFileSync(new URL('../../docs/00_bible/extracted/autorepairs.json', import.meta.url), 'utf8'));
-  const shipped = { kjv: Object.fromEntries(edition.books.map(b => [b.id, b.chapters])), web: overlay.books };
-  for (const [tr, joins] of Object.entries(repairs)) {
+  const shipped = { kjv: Object.fromEntries(edition.books.map(b => [b.id, b.chapters])), web: Object.fromEntries(overlay.books.map(b => [b.id, b.chapters])) };
+  for (const tr of ['kjv', 'web']) {
+    const joins = repairs[tr];
     for (const { ref, from, to } of joins) {
       const [book, chv] = ref.split(' ');
       const [ch, v] = chv.split(':');
@@ -78,8 +79,8 @@ test('every recorded auto-repair is applied in shipped data (receipt ↔ reality
 test('regressions for judge-found both-fragments-common splits (rounds 2–3)', () => {
   const kjv = Object.fromEntries(edition.books.map(b => [b.id, b.chapters]));
   assert.match(kjv.john['12']['49'], /the Father which sent me/);
-  assert.match(overlay.books.john['3']['23'], /because there was much water/);
-  assert.match(overlay.books.isaiah['41']['9'], /called from its corners/);
+  assert.match(overlay.books.find(b => b.id === 'john').chapters['3']['23'], /because there was much water/);
+  assert.match(overlay.books.find(b => b.id === 'isaiah').chapters['41']['9'], /called from its corners/);
   assert.match(kjv.isaiah['6']['6'], /a live coal/, 'legitimate pair must never be joined');
 });
 
