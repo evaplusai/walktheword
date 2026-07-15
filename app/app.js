@@ -1,9 +1,9 @@
 // Walk the Word — app controller (ADR-002/003/004).
 // Everything rendered here is edition data, verbatim. Nothing is composed at runtime.
 import {
-  getBook, getPassage, nodeById, edgeById, walkEdge, classifyQuery,
+  getBook, getPassage, getVerse, nodeById, edgeById, walkEdge, classifyQuery,
   validateEdition, editionChecksum, formatRef, missingRefExplanation,
-  edgeWarrants, parseRef
+  edgeWarrants, parseRef, edgesForVerse
 } from './lib/graph.mjs';
 import { escapeHtml, chapterHTML } from './lib/render.mjs';
 
@@ -647,6 +647,56 @@ function openBooks(expanded = screen.book || 'matthew') {
   openSheet('sh-books');
 }
 
+// -- verse card (ADR-008): every verse is tappable, graph or no graph.
+function openVerseSheet(ref) {
+  const p = parseRef(ref);
+  if (!p) return;
+  const text = getVerse(data, p.book, p.chapter, p.verseStart);
+  const human = formatRef(data, ref);
+  const doors = edgesForVerse(data, p.book, p.chapter, p.verseStart);
+  const otherTr = translation === 'web' ? 'kjv' : 'web';
+  $('#sh-verse').innerHTML = `
+    <div class="grab"></div>
+    <p class="cap">${escapeHtml(human)} · ${trLabel()}</p>
+    <div class="target"><p>${text ? `“${escapeHtml(text)}”` : 'This translation omits this verse (receipted in the edition).'}</p></div>
+    ${doors.length
+      ? `<p class="cap" style="margin-top:14px">Doors in this verse</p>` + doors.map(e =>
+          `<div class="dest"><div class="ref"><span><span class="chip ${e.grade}" data-grade="${e.grade}" role="button" tabindex="0">${e.grade}</span></span>
+           <span class="go" data-opencard="${escapeHtml(e.id)}" role="button" tabindex="0">Open →</span></div>
+           <p style="font-family:var(--sans);font-size:13px">${escapeHtml(e.claim)}</p></div>`).join('')
+      : `<p class="quiet" style="margin-top:12px">No graded connections here yet — Edition 2 carries
+         the Edition-1 map (5 curator-graded connections, in Matthew 13). The map grows edition
+         by edition, only through graded, warranted claims — never auto-generated links.</p>`}
+    <div class="vact">
+      <button class="btn" id="vCopy">Copy link</button>
+      <button class="btn" id="vSwap">Read in ${otherTr.toUpperCase()}</button>
+    </div>
+    <div class="srow" style="margin-top:10px"><input id="vNote" maxlength="200" autocomplete="off"
+      placeholder="One dated line about this verse…"><button class="btn" id="vKeep">Keep</button></div>`;
+  $('#vCopy').onclick = async () => {
+    const url = `${location.origin}${location.pathname}#/read/${p.book}/${p.chapter}/${p.verseStart}`;
+    try { await navigator.clipboard.writeText(url); toast('Link copied — it opens this verse, in its book, in order.'); }
+    catch { toast(url); }
+  };
+  $('#vSwap').onclick = async () => {
+    await setTranslation(otherTr);
+    showScreen({ type: 'reading', book: p.book, chapter: p.chapter, land: p.verseStart });
+  };
+  const keep = () => {
+    const t = $('#vNote').value.trim();
+    if (!t) return;
+    const notes = store.read('wtw.notes', []);
+    notes.push({ when: new Date().toISOString().slice(0, 10), ref: human, text: t });
+    store.write('wtw.notes', notes);
+    toast('Kept — on this device only, invisible to everyone.');
+    closeSheets();
+  };
+  $('#vKeep').onclick = keep;
+  $('#vNote').onkeydown = e => { if (e.key === 'Enter') keep(); };
+  $$('#sh-verse [data-opencard]').forEach(el => el.onclick = () => openCard(el.dataset.opencard));
+  openSheet('sh-verse');
+}
+
 // -- trail sheet (ADR-003 §3)
 function openTrail() {
   const steps = trail.map((s, i) =>
@@ -727,7 +777,11 @@ function wire() {
     if (warrant) {
       const p = getPassage(data, warrant.dataset.warrant);
       if (p) toast(`Warrant — ${p.bookName} ${p.chapter}:${p.verses[0].v}: “${p.verses[0].t}”`);
+      return;
     }
+    // ADR-008: the whole verse is a tap target (doors above take priority)
+    const vs = e.target.closest('#view [data-verse]');
+    if (vs && screen.type === 'reading') openVerseSheet(vs.dataset.verse);
   });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheets(); });
 }

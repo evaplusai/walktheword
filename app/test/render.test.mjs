@@ -39,7 +39,16 @@ test('gap admission still works for a future partial chapter (synthetic)', () =>
 
 test('landing verse is highlighted for walk arrivals', () => {
   const html = chapterHTML(data, 'isaiah', 6, 9);
-  assert.match(html, /<span class="land"><span class="v">9<\/span>/);
+  assert.match(html, /class="vs land" data-verse="isaiah:6:9"/);
+});
+
+test('every verse is a tap target (ADR-008) and number-doors appear when phrase is absent', () => {
+  const html = verseHTML(data, 'genesis', 1, 1, getVerse(data, 'genesis', 1, 1));
+  assert.match(html, /^<span class="vs" data-verse="genesis:1:1">/);
+  // simulate a translation whose wording lacks the anchor phrase: door moves to the number
+  const fake = 'And in them is fulfilled what Isaiah spoke.';
+  const alt = verseHTML(data, 'matthew', 13, 14, fake);
+  assert.match(alt, /<a class="cx2 A" data-edge="mt13-14-quotes-isa6-9"[^>]*><span class="v">14<\/span><\/a>/);
 });
 
 test('psalm superscription opens verse 1 verbatim (source convention; .super stays for future sources)', () => {

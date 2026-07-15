@@ -76,6 +76,15 @@ missing-ref honesty; psalm superscriptions; notes export; 13 new adversarial tes
 - ✅ Cleared by adversarial trace: trail is sessionStorage-only, no double-count on
   delegated listeners, no harmonization, aligned phrases verbatim in all three witnesses.
 
+## Cycle 5 — ADR-008: universal verse actions — gates T/V ✅, judging
+Curator feedback: whole canon loaded but "nothing is clickable" — the graded map is
+Edition-1 sized (5 connections, KJV-anchored) by constitution, leaving 1,188 chapters
+inert and WEB inert everywhere. Fix: every verse is now a tap target → verse card with
+copy-link (deep link), note-anchored-to-this-verse, read-in-other-translation, its graded
+doors (or an honest "no connections here yet" line); doors whose KJV anchor phrase is
+absent in the displayed translation attach to the verse NUMBER (same grade vocabulary) —
+the map is walkable from WEB now. Tests 40/40.
+
 ## Cycle 4 verdict — COMPLETE ✅ (round 3: **97 PASS**, path 67 → 91 → 97)
 Full canon verified: judge's independent PDF re-extraction confirms both editions
 word-perfect (structure 66/1189/31102, provenance, checksums, cross-canon samples,
