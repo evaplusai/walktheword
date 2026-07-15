@@ -144,3 +144,12 @@ vite.config.ts.timestamp-*
 
 # AgentDB curator workbench (local, regenerate with: npx agentdb init ./curator/agentdb.db)
 curator/*.db
+
+# Walk the Word — never publish these (local sources & runtime state)
+docs/00_bible/*.pdf
+docs/00_bible/*_full.txt
+.swarm/
+ruvector.db
+*.db
+*.db-shm
+*.db-wal
