@@ -245,6 +245,20 @@ if __name__ == '__main__':
         # the IDENTICAL scan against shipped data — same counts, same thresholds
         with open(f'docs/00_bible/extracted/lexicon-{tr}.json', 'w', encoding='utf-8') as f:
             json.dump({w: n for w, n in lex.items() if w.isalpha()}, f, ensure_ascii=False)
+        # export corpus bigram counts for every adjacent pair in the SHIPPED slice whose
+        # join is a corpus word — lets the test suite run the bigram rule identically
+        checks = {}
+        for chs in data.values():
+            for vs in chs.values():
+                for t in vs.values():
+                    toks = t.split()
+                    for i in range(len(toks) - 1):
+                        a = toks[i].strip(".,;:?!()'\"").lower()
+                        z = toks[i + 1].strip(".,;:?!()'\"").lower()
+                        if a.isalpha() and z.isalpha() and lex[a + z] >= 3:
+                            checks[f'{a} {z}'] = bigrams[(a, z)]
+        with open(f'docs/00_bible/extracted/bigrams-{tr}.json', 'w', encoding='utf-8') as f:
+            json.dump(checks, f, ensure_ascii=False)
     with open('docs/00_bible/extracted/autorepairs.json', 'w', encoding='utf-8') as f:
         json.dump(all_autorepairs, f, indent=2, ensure_ascii=False)
     print('extracted -> docs/00_bible/extracted/ (+ autorepairs.json, lexicon-*.json receipts)')

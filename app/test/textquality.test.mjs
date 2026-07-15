@@ -11,10 +11,12 @@ const edition = JSON.parse(readFileSync(new URL('../data/edition-1.json', import
 const overlay = JSON.parse(readFileSync(new URL('../data/web-overlay-1.json', import.meta.url), 'utf8'));
 const lexKJV = JSON.parse(readFileSync(new URL('../../docs/00_bible/extracted/lexicon-kjv.json', import.meta.url), 'utf8'));
 const lexWEB = JSON.parse(readFileSync(new URL('../../docs/00_bible/extracted/lexicon-web.json', import.meta.url), 'utf8'));
+const bigKJV = JSON.parse(readFileSync(new URL('../../docs/00_bible/extracted/bigrams-kjv.json', import.meta.url), 'utf8'));
+const bigWEB = JSON.parse(readFileSync(new URL('../../docs/00_bible/extracted/bigrams-web.json', import.meta.url), 'utf8'));
 
 const STRIP = /^[.,;:?!()'"]+|[.,;:?!()'"]+$/g;
 
-function splitSuspects(verseMaps, lex) {
+function splitSuspects(verseMaps, lex, bigrams) {
   const suspects = [];
   for (const [bookId, chapters] of Object.entries(verseMaps)) {
     for (const [ch, verses] of Object.entries(chapters)) {
@@ -32,6 +34,14 @@ function splitSuspects(verseMaps, lex) {
           const zFrag = (lex[z] || 0) <= frag || (z.length === 1 && !singles.includes(z));
           if (joined >= 3 && (aFrag || zFrag)) {
             suspects.push(`${bookId} ${ch}:${v} "${toks[i]} ${toks[i + 1]}"`);
+            continue;
+          }
+          // both-fragments-common class ("fat her" -> father) via exported corpus
+          // bigram counts — same thresholds as the ingest-side scan
+          const bc = bigrams[`${a} ${z}`];
+          if (bc !== undefined && a.length >= 2 && z.length >= 2
+              && joined >= 50 && bc <= 2 && Math.floor(joined / Math.max(1, bc)) >= 100) {
+            suspects.push(`${bookId} ${ch}:${v} "${toks[i]} ${toks[i + 1]}" (bigram)`);
           }
         }
       }
@@ -42,11 +52,11 @@ function splitSuspects(verseMaps, lex) {
 
 test('KJV edition text carries no split-word extraction artifacts', () => {
   const verseMaps = Object.fromEntries(edition.books.map(b => [b.id, b.chapters]));
-  assert.deepEqual(splitSuspects(verseMaps, lexKJV), []);
+  assert.deepEqual(splitSuspects(verseMaps, lexKJV, bigKJV), []);
 });
 
 test('WEB overlay text carries no split-word extraction artifacts', () => {
-  assert.deepEqual(splitSuspects(overlay.books, lexWEB), []);
+  assert.deepEqual(splitSuspects(overlay.books, lexWEB, bigWEB), []);
 });
 
 test('every recorded auto-repair is applied in shipped data (receipt ↔ reality)', () => {

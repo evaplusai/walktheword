@@ -76,6 +76,22 @@ missing-ref honesty; psalm superscriptions; notes export; 13 new adversarial tes
 - ✅ Cleared by adversarial trace: trail is sessionStorage-only, no double-count on
   delegated listeners, no harmonization, aligned phrases verbatim in all three witnesses.
 
+## Cycle 2 — round 4 verdict: 96 FAIL → paperwork fix → regrading
+TEXT FULLY VERIFIED: judge's independent 798-verse re-diff = verbatim modulo exactly the
+40 recorded repairs, zero false positives, exhaustive low-threshold bigram probe found no
+residual splits. Remaining defects were documentation: stale report counts/claims, missing
+round-3 scoreboard entry, bigram rule absent test-side. Fixed: report regenerated with
+full round 1–4 audit trail and dynamic counts; per-pair corpus bigram counts exported so
+the test scan now includes the bigram rule identically; this entry added.
+
+## Cycle 2 — round 3 verdict: 85 FAIL → fix round 3
+Judge round 3: two residuals of the both-fragments-common class — KJV Jn 12:49 "Fat her"
+("fat" and "her" both common words) and WEB Jn 3:23 "be cause". Fix: the judge-suggested
+join-vs-bigram frequency test (joined ≥50 corpus uses, adjacent pair ≤2, ratio ≥100) with
+guards preserving legitimate pairs — "a live coal" (Isa 6:6, in our own slice) verified
+untouched. Both residuals caught by the detector; receipt-vs-reality test added (every
+autorepair verified applied in shipped data); 36/36 green.
+
 ## Cycle 2 — round 2 verdict: 88 FAIL → fix round 2 → regrading
 Judge round 2: all 18 round-1 artifacts verified repaired, no false-positive joins — but
 ONE residual survived (WEB Isa 41:9 "corner s,"): the corpus lexicon counted standalone
