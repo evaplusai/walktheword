@@ -378,7 +378,8 @@ def main():
                     'and rebuilt (ADR-006). The graded connection map is unchanged from Edition 1.'
                 ],
                 'graphStatus': graph['_status'],
-                'anchorsBoundTo': 'KJV'
+                'anchorsBoundTo': 'KJV',
+                'omittedVerses': omissions
             },
             'books': [
                 {'id': bid, 'name': name, 'order': order, 'chaptersTotal': total,

@@ -56,11 +56,17 @@ test('the two editions are genuinely different translations over the SAME graph'
   assert.deepEqual(webData.moments, data.moments);
 });
 
-test('WEB verse omissions are honest: numbered, empty, receipted — never faked', () => {
+test('WEB verse omissions are honest: numbered, empty, receipted in the manifest', () => {
   for (const [b, c, v] of [['luke', 17, 36], ['acts', 8, 37], ['acts', 15, 34], ['acts', 24, 7]]) {
     assert.equal(webData.books.find(x => x.id === b).chapters[String(c)][String(v)], '', `web ${b} ${c}:${v}`);
     assert.ok(getVerse(data, b, c, v).length > 0, `kjv ${b} ${c}:${v} has text`);
   }
+  assert.deepEqual(webData.edition.omittedVerses, ['luke 17:36', 'acts 8:37', 'acts 15:34', 'acts 24:7']);
+  assert.deepEqual(data.edition.omittedVerses, []);
+});
+
+test('validateEdition is translation-aware: WEB validates clean despite KJV-bound anchors', () => {
+  assert.deepEqual(validateEdition(webData), []);
 });
 
 test('sample canon spot checks read as the KJV source', () => {

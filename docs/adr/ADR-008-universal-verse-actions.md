@@ -32,8 +32,9 @@ interactivity, and WEB had none anywhere. Correct data, broken experience.
 3. Doors keep priority: tapping a dotted phrase opens its connection card, not the
    verse card.
 4. Keyboard note: doors remain focusable; verse spans are pointer/touch targets only
-   (176 tab stops per psalm would wreck keyboard navigation) — the same actions are
-   reachable via Search → reference → verse card. Recorded trade-off.
+   (176 tab stops per psalm would wreck keyboard navigation). The keyboard/AT path:
+   **a single-verse reference in Search opens the verse card directly** (implemented in
+   `doSearch`; the card's controls are all focusable buttons/inputs). Recorded trade-off.
 
 ## The real fix beyond UI
 

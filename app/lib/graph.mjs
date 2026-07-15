@@ -264,8 +264,12 @@ export function validateEdition(data) {
     } else {
       const p = parseRef(edge.anchor.ref);
       const text = p && getVerse(data, p.book, p.chapter, p.verseStart);
+      // ADR-008: anchors are phrase-verbatim only in the translation they are bound to;
+      // other translations carry the door on the verse number instead.
+      const anchorsForeign = data.edition && data.edition.anchorsBoundTo
+        && !String(data.edition.translation || '').toUpperCase().startsWith(String(data.edition.anchorsBoundTo).toUpperCase());
       if (!text) errors.push(`edge ${edge.id}: anchor ref ${edge.anchor.ref} does not resolve`);
-      else if (!text.includes(edge.anchor.phrase)) {
+      else if (!anchorsForeign && !text.includes(edge.anchor.phrase)) {
         errors.push(`edge ${edge.id}: anchor phrase not verbatim in ${edge.anchor.ref}`);
       }
     }

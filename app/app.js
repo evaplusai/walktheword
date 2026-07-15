@@ -442,12 +442,15 @@ function renderEvent(nodeId, tab = 0, compare = false) {
     return `<div class="row"><span class="who">${escapeHtml(op.bookName)} ${op.chapter}:${op.verses[0].v}</span>
       <p>“${escapeHtml(node.aligned[o.book])}…”</p></div>`;
   }).join('');
+  const hasTint = body.includes('alignTap');
   const kp = getPassage(data, node.key.ref);
   $('#view').innerHTML = `
     <div class="tabs">${node.witnesses.map((wit, i) =>
       `<span class="${i === tab ? 'on' : ''}" data-tab="${i}">${escapeHtml(getBook(data, wit.book).name)}</span>`).join('')}</div>
     <p class="scripture" style="font-size:15.5px">${body}</p>
-    <p class="quiet" style="margin-top:8px">Tap the tinted phrase to hear the other witnesses.</p>
+    <p class="quiet" style="margin-top:8px">${hasTint
+      ? 'Tap the tinted phrase to hear the other witnesses.'
+      : 'Aligned phrases are marked in the KJV wording — switch to KJV in Books to compare them; each tab quotes this translation whole.'}</p>
     ${compare ? `<div class="cmp"><p class="cap">The same moment, each voice</p>${others}</div>` : ''}
     <div class="divergence"><span class="chip ${node.divergence.grade}" data-grade="${node.divergence.grade}" role="button" tabindex="0">${node.divergence.grade}</span>
       ${escapeHtml(node.divergence.text)} <a class="cx2 B" data-goto="${escapeHtml(node.divergence.ref)}" role="button" tabindex="0">Shown, graded, unresolved.</a></div>
@@ -508,8 +511,12 @@ function doSearch(q) {
     const p = getPassage(data, res.ref);
     const from = { type: 'search', q };
     returnTo = { label: 'Search', screen: from };
-    pushStep(`Search → ${p.bookName} ${p.chapter}`, 'Jumped by reference', '', { type: 'reading', book: p.book, chapter: p.chapter, land: p.verses.length === 1 ? p.verses[0].v : null });
-    showScreen({ type: 'reading', book: p.book, chapter: p.chapter, land: p.verses.length === 1 ? p.verses[0].v : null });
+    const land = p.verses.length === 1 ? p.verses[0].v : null;
+    pushStep(`Search → ${p.bookName} ${p.chapter}`, 'Jumped by reference', '', { type: 'reading', book: p.book, chapter: p.chapter, land });
+    showScreen({ type: 'reading', book: p.book, chapter: p.chapter, land });
+    // ADR-008 §4: a single-verse reference opens the verse card — the keyboard/AT path
+    // to copy-link, notes, and translation swap (the card's controls are focusable).
+    if (land) openVerseSheet(`${p.book}:${p.chapter}:${land}`);
     return;
   }
   if (res.kind === 'moment') {
@@ -658,15 +665,16 @@ function openVerseSheet(ref) {
   $('#sh-verse').innerHTML = `
     <div class="grab"></div>
     <p class="cap">${escapeHtml(human)} · ${trLabel()}</p>
-    <div class="target"><p>${text ? `“${escapeHtml(text)}”` : 'This translation omits this verse (receipted in the edition).'}</p></div>
+    <div class="target"><p>${text ? `“${escapeHtml(text)}”` : 'This translation omits this verse — the source prints no text here (listed in the edition manifest’s omittedVerses).'}</p></div>
     ${doors.length
       ? `<p class="cap" style="margin-top:14px">Doors in this verse</p>` + doors.map(e =>
           `<div class="dest"><div class="ref"><span><span class="chip ${e.grade}" data-grade="${e.grade}" role="button" tabindex="0">${e.grade}</span></span>
            <span class="go" data-opencard="${escapeHtml(e.id)}" role="button" tabindex="0">Open →</span></div>
            <p style="font-family:var(--sans);font-size:13px">${escapeHtml(e.claim)}</p></div>`).join('')
       : `<p class="quiet" style="margin-top:12px">No graded connections here yet — Edition 2 carries
-         the Edition-1 map (5 curator-graded connections, in Matthew 13). The map grows edition
-         by edition, only through graded, warranted claims — never auto-generated links.</p>`}
+         the Edition-1 map (${data.edges.length} curator-graded connections, anchored in Matthew 13
+         and Luke 8). The map grows edition by edition, only through graded, warranted claims —
+         never auto-generated links.</p>`}
     <div class="vact">
       <button class="btn" id="vCopy">Copy link</button>
       <button class="btn" id="vSwap">Read in ${otherTr.toUpperCase()}</button>
